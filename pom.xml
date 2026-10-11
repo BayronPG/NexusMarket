@@ -4,6 +4,13 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.4.5</version>
+        <relativePath/>
+    </parent>
+
     <groupId>com.nexusmarket</groupId>
     <artifactId>nexusmarket</artifactId>
     <version>0.1.0-SNAPSHOT</version>
@@ -17,6 +24,32 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
-    <!-- NOTE: sin dependencias por ahora. La integracion con Spring Boot
-         corresponde a la Evidencia 2 (servicios de dominio/aplicacion). -->
+    <!--
+        Evidencia 2 (servicios de dominio y/o aplicacion): solo se requieren
+        los servicios de Spring. La persistencia (Spring Data JPA y el motor
+        de base de datos) corresponde a la evidencia de API Web y queda
+        PENDIENTE de decision (D-004). Por eso este incremento no declara un
+        driver ni una base de datos.
+    -->
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
 </project>
