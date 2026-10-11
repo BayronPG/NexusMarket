@@ -3,6 +3,7 @@ package com.nexusmarket.application.service;
 import com.nexusmarket.application.ActorContext;
 import com.nexusmarket.application.Authorization;
 import com.nexusmarket.application.Validation;
+import com.nexusmarket.application.error.BusinessRuleException;
 import com.nexusmarket.application.error.NotFoundException;
 import com.nexusmarket.application.port.in.ManageInventoryUseCase;
 import com.nexusmarket.application.port.out.InventoryRepository;
@@ -56,7 +57,7 @@ public class InventoryService implements ManageInventoryUseCase {
             throw new NotFoundException("Warehouse not found: " + warehouseId);
         }
         if (inventoryRepository.findByProductIdAndWarehouseId(productId, warehouseId).isPresent()) {
-            throw new com.nexusmarket.application.error.BusinessRuleException(
+            throw new BusinessRuleException(
                     "Stock is already registered for the given product and warehouse");
         }
 
