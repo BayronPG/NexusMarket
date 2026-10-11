@@ -70,6 +70,9 @@ duplican.
   para poder ejecutar y probar los servicios sin decidir una base de datos. La evaluación
   concertada admite **MySQL y/o MongoDB**; la selección se hará en la evidencia de API Web.
 - Endpoints REST, seguridad y contratos OpenAPI: evidencias posteriores.
+- **Decisiones, supuestos y alcance real** del incremento (naturaleza provisional de la
+  persistencia, diferencia entre autenticación y autorización, alcance de `OrderService` y
+  casos de uso bloqueados): [docs/servicios-de-dominio.md](docs/servicios-de-dominio.md).
 - Preguntas abiertas del dominio (variantes, contenido del pedido, catálogo de estados,
   reportes) documentadas en [docs/modelo-de-dominio.md](docs/modelo-de-dominio.md), sección 11.
 
