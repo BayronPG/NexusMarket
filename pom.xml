@@ -25,16 +25,35 @@
     </properties>
 
     <!--
-        Evidencia 2 (servicios de dominio y/o aplicacion): solo se requieren
-        los servicios de Spring. La persistencia (Spring Data JPA y el motor
-        de base de datos) corresponde a la evidencia de API Web y queda
-        PENDIENTE de decision (D-004). Por eso este incremento no declara un
-        driver ni una base de datos.
+        Evidencia 2 (servicios de dominio y/o aplicacion): servicios de Spring.
+        Evidencia 5 (API Web funcional): se agrega persistencia con JPA/Hibernate
+        sobre MySQL (D-004 resuelta por el estudiante el 2026-10-13). MongoDB no
+        se implementa. El motor y el datasource se configuran en la Fase 1.4 del
+        docs/PLAN_API_WEB.md; la version del driver la gestiona spring-boot-starter-parent.
     -->
     <dependencies>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-jpa</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.mysql</groupId>
+            <artifactId>mysql-connector-j</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- H2 embebida SOLO para el perfil de pruebas (application-test.properties).
+             Alcance test: nunca se empaqueta con la aplicacion ni sustituye a MySQL. -->
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>test</scope>
         </dependency>
 
         <dependency>
