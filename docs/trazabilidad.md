@@ -23,9 +23,9 @@ Formato: | ID | Fuente | Requisito | Componente | Evidencia | Prueba | Estado |
 
 | ID | Fuente | Requisito | Componente | Evidencia | Prueba | Estado |
 |---|---|---|---|---|---|---|
-| RG-01 | Especificación | Toda operación por usuario autenticado | `application.ActorContext`, `application.Authorization` | `ActorContext.java`, `Authorization.java` | Pruebas de rol en cada servicio | Implementado (contexto de actor; seguridad real posterior) |
+| RG-01 | Especificación | Toda operación por usuario autenticado | `application.context.ActorContext`, `application.support.Authorization` | `ActorContext.java`, `Authorization.java` | Pruebas de rol en cada servicio | Implementado (contexto de actor; seguridad real posterior) |
 | RG-02 | Especificación | Un único rol por usuario | `domain.user.Role`, `User.role`, `ActorContext.role` | `domain/user/*.java` | `SellerRegistrationServiceTest` | Implementado y probado |
-| RG-03 | Especificación | No administrar información fuera del rol | `application.Authorization` + servicios | `Authorization.java` | Pruebas de permisos por servicio | Implementado y probado |
+| RG-03 | Especificación | No administrar información fuera del rol | `application.support.Authorization` + servicios | `Authorization.java` | Pruebas de permisos por servicio | Implementado y probado |
 
 ## Validaciones críticas
 
@@ -47,3 +47,13 @@ Formato: | ID | Fuente | Requisito | Componente | Evidencia | Prueba | Estado |
 | CU-07/08/09 | Matriz, OBJ-06 | Existencias, reserva y consulta distribuida | `InventoryService` | `application/service/InventoryService.java` | `InventoryServiceTest` | Implementado y probado |
 | CU-10/11 | Matriz, OBJ-07/08 | Crear pedido y cambiar estado | `OrderService` | `application/service/OrderService.java` | `OrderServiceTest` | Implementado y probado |
 | CU-15 | Matriz, OBJ-11 | Solicitar reembolso | `RefundService` | `application/service/RefundService.java` | `RefundServiceTest` | Implementado y probado |
+
+## Persistencia (incremento en curso, 2026-10-13)
+
+| Componente | Ubicación | Prueba | Estado |
+|---|---|---|---|
+| Entidades JPA (8) | `infrastructure/persistence/jpa/entity/` | `JpaPersistenceTest` | Implementado (sin commitear) |
+| Mappers dominio ↔ JPA (8) | `infrastructure/persistence/jpa/mapper/` | `JpaMapperTest` | Implementado (sin commitear) |
+| Adaptadores JPA de los puertos de salida (8) | `infrastructure/persistence/jpa/` | — | **Pendiente (Fase 1.3)** |
+| Borde REST | `infrastructure/web/` | — | **Pendiente (Fase 2)** |
+| Asociaciones, restricciones y estrategia de esquema | — | — | **Decisión pendiente (P-1, P-2, P-3, Fase 1.5)** |

@@ -36,9 +36,8 @@ com.nexusmarket
 │   ├── port/out/                Puertos de salida: repositorios requeridos por los servicios
 │   ├── service/                 Servicios que implementan los casos de uso (@Service)
 │   ├── error/                   Excepciones de la capa de aplicación
-│   ├── ActorContext             Actor que ejecuta el caso de uso (identidad + rol)
-│   ├── Authorization            Verificación de rol
-│   └── Validation               Verificación de entradas obligatorias
+│   ├── context/                 Actor que ejecuta el caso de uso (ActorContext: identidad + rol)
+│   └── support/                 Apoyo transversal: Authorization (rol) y Validation (entradas)
 └── infrastructure/
     └── persistence/memory/      Adaptadores en memoria TEMPORALES de los puertos de salida
 ```
@@ -203,7 +202,10 @@ pedidos **no debe presentarse como terminado**.
 
 ## 9. Evidencia de pruebas
 
-`mvn test` → **49 pruebas, 0 fallos** (JUnit 5 + AssertJ).
+`mvn test` → **67 pruebas, 0 fallos** (JUnit 5 + AssertJ) al 2026-10-13.
+
+> La Evidencia 2 se cerró con **49 pruebas**. El incremento de persistencia (Fases 1.1, 1.4 y 1.2,
+> sin commitear) añadió 18 pruebas: `JpaMapperTest` (10) y `JpaPersistenceTest` (8).
 
 | Clase de prueba | Pruebas | Reglas cubiertas |
 |---|---|---|
@@ -213,7 +215,10 @@ pedidos **no debe presentarse como terminado**.
 | `InventoryServiceTest` | 12 | RN-09, RN-10, RN-11, RN-12 |
 | `OrderServiceTest` | 8 | RN-13, RN-16, RG-03 |
 | `RefundServiceTest` | 5 | OBJ-11, RG-03 |
-| `NexusMarketApplicationTests` | 1 | Arranque del contexto Spring |
+| `NexusMarketApplicationTests` | 1 | Arranque del contexto Spring (perfil `test`, H2) |
+| `JpaMapperTest` *(incremento de persistencia)* | 10 | Mappers dominio ↔ JPA |
+| `JpaPersistenceTest` *(incremento de persistencia)* | 8 | Persistencia H2 de las 8 entidades (`@DataJpaTest`) |
+| **Total** | **67** | 0 fallos |
 
 ---
 
@@ -225,6 +230,25 @@ pedidos **no debe presentarse como terminado**.
 4. **Variantes del producto**: naturaleza pendiente.
 5. **Persistencia**: elección de MySQL y/o MongoDB (decisión provisional D1/D2; evidencia de API Web).
 6. **Autenticación real** (RG-01): evidencia de seguridad posterior (§5).
+
+---
+
+## 11. Incremento de persistencia (en curso, 2026-10-13)
+
+Incremento posterior a esta evidencia, **aún no publicado** en `origin/main`:
+
+| Elemento | Estado |
+|---|---|
+| Dependencias `spring-boot-starter-data-jpa` + `mysql-connector-j` (runtime) + `h2` (test) | Implementado (sin commitear) |
+| Configuración: **MySQL real** por variables de entorno; **H2 solo en el perfil `test`** | Implementado (sin commitear) |
+| **8 entidades JPA** separadas del dominio (`infrastructure/persistence/jpa/entity/`) | Implementado (sin commitear) |
+| **8 mappers** dominio ↔ JPA (`infrastructure/persistence/jpa/mapper/`) | Implementado (sin commitear) |
+| Adaptadores JPA que implementan los 8 puertos de salida | **Pendiente (Fase 1.3)** |
+| Borde REST (controllers, DTO, validación, errores, OpenAPI) | **Pendiente (Fase 2)** |
+| Asociaciones JPA, restricciones de BD y estrategia definitiva de esquema | **Decisión pendiente** |
+
+El **dominio no se modificó**: las entidades JPA son clases **separadas** y los mappers traducen en
+ambos sentidos. Plan completo: [PLAN_API_WEB.md](PLAN_API_WEB.md).
 
 ---
 
