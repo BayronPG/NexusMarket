@@ -1,6 +1,6 @@
 package com.nexusmarket.application.port.in;
 
-import com.nexusmarket.application.ActorContext;
+import com.nexusmarket.application.context.ActorContext;
 import com.nexusmarket.domain.seller.Seller;
 
 /**

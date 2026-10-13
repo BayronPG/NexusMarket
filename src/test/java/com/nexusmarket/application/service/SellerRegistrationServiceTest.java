@@ -3,7 +3,7 @@ package com.nexusmarket.application.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.nexusmarket.application.ActorContext;
+import com.nexusmarket.application.context.ActorContext;
 import com.nexusmarket.application.error.AuthorizationException;
 import com.nexusmarket.application.error.BusinessRuleException;
 import com.nexusmarket.application.error.ValidationException;

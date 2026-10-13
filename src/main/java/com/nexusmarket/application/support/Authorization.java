@@ -1,5 +1,6 @@
-package com.nexusmarket.application;
+package com.nexusmarket.application.support;
 
+import com.nexusmarket.application.context.ActorContext;
 import com.nexusmarket.application.error.AuthorizationException;
 import com.nexusmarket.domain.user.Role;
 

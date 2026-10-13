@@ -1,13 +1,13 @@
 package com.nexusmarket.application.service;
 
-import com.nexusmarket.application.ActorContext;
-import com.nexusmarket.application.Authorization;
-import com.nexusmarket.application.Validation;
+import com.nexusmarket.application.context.ActorContext;
 import com.nexusmarket.application.error.NotFoundException;
 import com.nexusmarket.application.error.ValidationException;
 import com.nexusmarket.application.port.in.ManageWarehousesUseCase;
 import com.nexusmarket.application.port.out.SellerRepository;
 import com.nexusmarket.application.port.out.WarehouseRepository;
+import com.nexusmarket.application.support.Authorization;
+import com.nexusmarket.application.support.Validation;
 import com.nexusmarket.domain.user.Role;
 import com.nexusmarket.domain.warehouse.Warehouse;
 import com.nexusmarket.domain.warehouse.WarehouseType;

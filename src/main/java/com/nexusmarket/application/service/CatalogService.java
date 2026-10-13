@@ -1,13 +1,13 @@
 package com.nexusmarket.application.service;
 
-import com.nexusmarket.application.ActorContext;
-import com.nexusmarket.application.Authorization;
-import com.nexusmarket.application.Validation;
+import com.nexusmarket.application.context.ActorContext;
 import com.nexusmarket.application.error.AuthorizationException;
 import com.nexusmarket.application.error.NotFoundException;
 import com.nexusmarket.application.port.in.ManageCatalogUseCase;
 import com.nexusmarket.application.port.out.ProductRepository;
 import com.nexusmarket.application.port.out.SellerRepository;
+import com.nexusmarket.application.support.Authorization;
+import com.nexusmarket.application.support.Validation;
 import com.nexusmarket.domain.catalog.Product;
 import com.nexusmarket.domain.catalog.ProductStatus;
 import com.nexusmarket.domain.seller.Seller;

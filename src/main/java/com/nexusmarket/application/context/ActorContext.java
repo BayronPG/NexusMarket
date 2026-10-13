@@ -1,4 +1,4 @@
-package com.nexusmarket.application;
+package com.nexusmarket.application.context;
 
 import com.nexusmarket.domain.user.Role;
 import java.util.Objects;

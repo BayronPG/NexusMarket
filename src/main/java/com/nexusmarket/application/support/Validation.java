@@ -1,4 +1,4 @@
-package com.nexusmarket.application;
+package com.nexusmarket.application.support;
 
 import com.nexusmarket.application.error.ValidationException;
 

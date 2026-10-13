@@ -1,14 +1,14 @@
 package com.nexusmarket.application.service;
 
-import com.nexusmarket.application.ActorContext;
-import com.nexusmarket.application.Authorization;
-import com.nexusmarket.application.Validation;
+import com.nexusmarket.application.context.ActorContext;
 import com.nexusmarket.application.error.AuthorizationException;
 import com.nexusmarket.application.error.NotFoundException;
 import com.nexusmarket.application.port.in.ManageRefundsUseCase;
 import com.nexusmarket.application.port.out.BuyerRepository;
 import com.nexusmarket.application.port.out.OrderRepository;
 import com.nexusmarket.application.port.out.RefundRepository;
+import com.nexusmarket.application.support.Authorization;
+import com.nexusmarket.application.support.Validation;
 import com.nexusmarket.domain.buyer.Buyer;
 import com.nexusmarket.domain.order.Order;
 import com.nexusmarket.domain.returns.Refund;
