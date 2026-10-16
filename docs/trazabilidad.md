@@ -23,7 +23,7 @@ Formato: | ID | Fuente | Requisito | Componente | Evidencia | Prueba | Estado |
 
 | ID | Fuente | Requisito | Componente | Evidencia | Prueba | Estado |
 |---|---|---|---|---|---|---|
-| RG-01 | Especificación | Toda operación por usuario autenticado | `application.context.ActorContext`, `application.support.Authorization` | `ActorContext.java`, `Authorization.java` | Pruebas de rol en cada servicio | Implementado (contexto de actor; seguridad real posterior) |
+| RG-01 | Especificación | Toda operación por usuario autenticado | `application.context.ActorContext`, `application.support.Authorization`, `infrastructure.web.ActorContextArgumentResolver` | `ActorContext.java`, `Authorization.java` | Pruebas de rol en cada servicio; `ActorContextArgumentResolverTest` | Implementado (contexto de actor provisional por cabeceras; seguridad real posterior) |
 | RG-02 | Especificación | Un único rol por usuario | `domain.user.Role`, `User.role`, `ActorContext.role` | `domain/user/*.java` | `SellerRegistrationServiceTest` | Implementado y probado |
 | RG-03 | Especificación | No administrar información fuera del rol | `application.support.Authorization` + servicios | `Authorization.java` | Pruebas de permisos por servicio | Implementado y probado |
 
@@ -48,12 +48,19 @@ Formato: | ID | Fuente | Requisito | Componente | Evidencia | Prueba | Estado |
 | CU-10/11 | Matriz, OBJ-07/08 | Crear pedido y cambiar estado | `OrderService` | `application/service/OrderService.java` | `OrderServiceTest` | Implementado y probado |
 | CU-15 | Matriz, OBJ-11 | Solicitar reembolso | `RefundService` | `application/service/RefundService.java` | `RefundServiceTest` | Implementado y probado |
 
-## Persistencia (incremento en curso, 2026-10-13)
+## Persistencia y API Web (2026-10-15)
 
 | Componente | Ubicación | Prueba | Estado |
 |---|---|---|---|
-| Entidades JPA (8) | `infrastructure/persistence/jpa/entity/` | `JpaPersistenceTest` | Implementado (sin commitear) |
-| Mappers dominio ↔ JPA (8) | `infrastructure/persistence/jpa/mapper/` | `JpaMapperTest` | Implementado (sin commitear) |
-| Adaptadores JPA de los puertos de salida (8) | `infrastructure/persistence/jpa/` | — | **Pendiente (Fase 1.3)** |
-| Borde REST | `infrastructure/web/` | — | **Pendiente (Fase 2)** |
-| Asociaciones, restricciones y estrategia de esquema | — | — | **Decisión pendiente (P-1, P-2, P-3, Fase 1.5)** |
+| Entidades JPA (8) | `infrastructure/persistence/jpa/entity/` | `JpaPersistenceTest` | Implementado y probado |
+| Mappers dominio ↔ JPA (8) | `infrastructure/persistence/jpa/mapper/` | `JpaMapperTest` | Implementado y probado |
+| Repositorios Spring Data (8) | `infrastructure/persistence/jpa/repository/` | `Jpa*RepositoryAdapterTest` | Implementado y probado |
+| Adaptadores JPA de los puertos de salida (8) | `infrastructure/persistence/jpa/adapter/` | `Jpa*RepositoryAdapterTest` | Implementado y probado |
+| Sustitución memoria ↔ JPA | perfil `memory` vs. por defecto | `JpaAdapterWiringTest`, `MemoryAdapterWiringTest` | Implementado y probado |
+| Esquema con Flyway (v1) | `src/main/resources/db/migration/` | `PersistenceMysqlIntegrationTest` | Implementado; validado en MySQL 8.0 |
+| Controladores REST (6; 15 endpoints) | `infrastructure/web/controller/` | `*ControllerTest` (MockMvc) | Implementado y probado |
+| DTO y mappers web | `infrastructure/web/dto/`, `infrastructure/web/mapper/` | `WebMapperTest` | Implementado y probado |
+| Validación de entrada (`@Valid` → 400) | DTO de entrada | `*ControllerTest` | Implementado y probado |
+| `ActorContext` temporal por cabeceras | `infrastructure/web/ActorContextArgumentResolver.java` | `ActorContextArgumentResolverTest` | Implementado y probado (provisional; no es autenticación) |
+| Manejo global de errores, OpenAPI, Postman, E2E | — | — | **Pendiente (Fases 2.4, 2.6, 2.7, 2.8)** |
+| Asociaciones y restricciones de esquema | — | — | Relaciones como columnas `Long` (P-1); esquema versionado con Flyway |

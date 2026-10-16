@@ -4,7 +4,7 @@
 > **Estudiante:** Jhon Bayron Peláez Guerra · **Docente:** Andrés Felipe Sánchez Aguiar
 > **Fecha del plan:** 2026-10-13
 > **Estado:** autorizado por el estudiante el 2026-10-13 y **en ejecución**. Implementado al
-> 2026-10-13: Fases **1.1**, **1.4** y **1.2** (sin commitear). Ver §12.
+> 2026-10-15: Fases **1.1–1.7** y **2.1, 2.2, 2.3 y 2.5**, publicadas en `origin/main`. Ver §12.
 >
 > **Alcance:** Unidad 2 (persistencia JPA/Hibernate) + Evidencia 5 — API Web funcional (20 %).
 > **Fuera de este plan:** seguridad (Unidad 4).
@@ -256,19 +256,31 @@ docs/ · README.md                          ← documentación de la evidencia
 
 ---
 
-## 12. Estado de implementación (2026-10-13)
+## 12. Estado de implementación (2026-10-15)
 
 | Fase | Tarea | Estado |
 |---|---|---|
-| 1.1 | Dependencias `spring-boot-starter-data-jpa` + `mysql-connector-j` | ✅ Implementado (sin commitear) |
-| 1.4 | Configuración de MySQL (variables de entorno) + perfil `test` con H2 | ✅ Implementado (sin commitear) |
-| 1.2 | 8 entidades JPA + 8 mappers dominio ↔ JPA | ✅ Implementado (sin commitear) |
-| 1.3 | Adaptadores JPA de los 8 puertos de salida | ⏳ **Pendiente** |
-| 1.5 | Estrategia definitiva de esquema (Flyway / `validate`) | ⏳ Pendiente (decisión) |
-| 1.6–1.7 | Sustitución de adaptadores + pruebas de integración | ⏳ Pendiente |
-| Fase 2 | Borde REST (controllers, DTO, validación, errores, OpenAPI) | ⏳ **Pendiente** |
+| 1.1 | Dependencias `spring-boot-starter-data-jpa` + `mysql-connector-j` | ✅ Implementado |
+| 1.2 | 8 entidades JPA + 8 mappers dominio ↔ JPA | ✅ Implementado |
+| 1.3 | Adaptadores JPA de los 8 puertos de salida | ✅ Implementado |
+| 1.4 | Configuración de MySQL (variables de entorno) + perfil `test` con H2 | ✅ Implementado |
+| 1.5 | Estrategia de esquema: **Flyway** + `ddl-auto=validate` | ✅ Implementado |
+| 1.6 | Sustitución de los adaptadores en memoria por los JPA | ✅ Implementado |
+| 1.7 | Pruebas de integración de persistencia contra MySQL real | ✅ Implementado (10/10 en MySQL 8.0) |
+| 2.1 | Controladores REST sobre los 6 puertos de entrada (15 endpoints) | ✅ Implementado |
+| 2.2 | DTO de entrada/salida + mappers web | ✅ Implementado |
+| 2.3 | Validación de entrada (`@Valid`, respuestas 400) | ✅ Implementado |
+| 2.4 | Manejo global de errores | ⏳ Pendiente |
+| 2.5 | Resolución temporal del `ActorContext` (cabeceras HTTP) | ✅ Implementado |
+| 2.6 | OpenAPI / Swagger UI | ⏳ Pendiente |
+| 2.7 | Colección Postman/Bruno | ⏳ Pendiente |
+| 2.8 | Pruebas de integración end-to-end | ⏳ Pendiente |
+| 3 | Cierre de la evidencia (documentación y trazabilidad) | 🔄 En curso |
 
-**Pruebas:** `mvn -B clean test` → **67/67 verdes** (48 de servicios + 18 de persistencia + 1 de contexto).
+**Pruebas:** `mvn -B clean test` → **153/153 verdes**; integración contra MySQL 8.0 → **10/10**
+(excluida del build por defecto mediante la etiqueta `mysql`).
+
+**Publicado:** `origin/main` en `46eaef3` (2026-10-15).
 
 ---
 

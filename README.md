@@ -18,15 +18,20 @@ NexusMarket es una plataforma digital centralizada que actúa como intermediario
 | **E1 — Modelo de dominio del negocio** | [docs/modelo-de-dominio.md](docs/modelo-de-dominio.md) + clases de dominio en `src/main/java/com/nexusmarket/domain/` | 2026-08-30 |
 | **E2 — Servicios de dominio y/o aplicación** | [docs/servicios-de-dominio.md](docs/servicios-de-dominio.md) + servicios de aplicación en `src/main/java/com/nexusmarket/application/` + pruebas automatizadas | 2026-09-27 |
 
-### Incremento de persistencia (en curso, sin commitear)
+### Incremento de API Web (Evidencia 5) — en curso
 
-Incremento posterior a E2, **aún no publicado** en `origin/main`:
+Incremento posterior a E2, **publicado** en `origin/main` (`46eaef3`, 2026-10-15):
 
-- **Fases 1.1, 1.4 y 1.2 implementadas**: dependencias de persistencia, configuración de MySQL por
-  variables de entorno, perfil `test` con H2, y **8 entidades JPA** + **8 mappers** dominio ↔ JPA.
-- **Adaptadores JPA de los repositorios: pendientes** (Fase 1.3).
-- **Borde REST: pendiente** (Fase 2).
-- **Asociaciones JPA, restricciones de base de datos y estrategia definitiva de esquema: sujetas a decisión.**
+- **Persistencia completa (Fases 1.1–1.7)**: 8 entidades JPA, 8 mappers, 8 repositorios Spring Data y
+  **8 adaptadores JPA** de los puertos de salida; los adaptadores en memoria se conservan para pruebas
+  bajo el perfil `memory`.
+- **Esquema con Flyway** (`V1__initial_schema.sql`) y `spring.jpa.hibernate.ddl-auto=validate`.
+- **Borde REST (Fases 2.1, 2.2, 2.3 y 2.5)**: 6 controladores sobre los 6 puertos de entrada
+  (**15 endpoints**), DTO y mappers web, validación `@Valid` (400) y resolución temporal del
+  `ActorContext` por cabeceras.
+- **Pendiente de la Fase 2**: manejo global de errores (2.4), OpenAPI (2.6), colección Postman (2.7)
+  y pruebas end-to-end (2.8).
+- **Asociaciones JPA**: siguen como columnas escalares `Long` (P-1); el esquema definitivo es Flyway.
 - Plan detallado: [docs/PLAN_API_WEB.md](docs/PLAN_API_WEB.md).
 
 ## Stack técnico
@@ -35,7 +40,9 @@ Incremento posterior a E2, **aún no publicado** en `origin/main`:
 - **Spring Boot 3.4.5** (Web, Data JPA).
 - **Arquitectura de puertos y adaptadores**: `domain` · `application` · `infrastructure`.
 - **MySQL** como base de datos **real** (configurada por variables de entorno).
-- **H2** exclusivamente para **pruebas** (perfil `test`).
+- **Flyway** como fuente única del esquema (migraciones en `db/migration`).
+- **H2** exclusivamente para **pruebas** (perfil `test`, en modo compatibilidad MySQL).
+- **Spring Boot Validation** (`@Valid`) para la validación de entrada del borde REST.
 - **JUnit 5** y **AssertJ**.
 
 ## Estructura del repositorio
@@ -60,14 +67,22 @@ NexusMarket/
     │   │   ├── service/           # Servicios que implementan los casos de uso
     │   │   └── error/             # Excepciones de la capa de aplicación
     │   └── infrastructure/        # Adaptadores
-    │       └── persistence/
-    │           ├── memory/        # Adaptadores en memoria (temporales, para pruebas)
-    │           └── jpa/
-    │               ├── entity/    # 8 entidades JPA (separadas del dominio)
-    │               └── mapper/    # 8 mappers dominio <-> JPA
+    │       ├── persistence/
+    │       │   ├── memory/        # Adaptadores en memoria (perfil "memory", solo pruebas)
+    │       │   └── jpa/
+    │       │       ├── entity/    # 8 entidades JPA (separadas del dominio)
+    │       │       ├── mapper/    # 8 mappers dominio <-> JPA
+    │       │       ├── repository/# 8 repositorios Spring Data
+    │       │       └── adapter/   # 8 adaptadores JPA de los puertos de salida
+    │       └── web/               # Adaptadores de entrada (borde REST)
+    │           ├── controller/    # 6 controladores (15 endpoints)
+    │           ├── dto/           # DTO de entrada y salida
+    │           └── mapper/        # Mapeo dominio <-> DTO
     ├── main/resources/application.properties        # MySQL (variables de entorno)
+    ├── main/resources/db/migration/                 # Migraciones Flyway (V1__initial_schema.sql)
     ├── test/java/com/nexusmarket/                   # Pruebas
-    └── test/resources/application-test.properties   # Perfil de pruebas (H2)
+    ├── test/resources/application-test.properties   # Perfil de pruebas (H2, MODE=MySQL)
+    └── test/resources/application-mysql.properties  # Integración contra MySQL real
 ```
 
 ## Cómo ejecutar
@@ -87,7 +102,15 @@ mvn spring-boot:run
 ```
 
 Las **pruebas** no necesitan MySQL: usan **H2 en memoria** mediante el perfil `test`
-(`src/test/resources/application-test.properties`).
+(`src/test/resources/application-test.properties`, en modo compatibilidad MySQL).
+
+La prueba de integración de persistencia contra **MySQL real** está excluida del build por defecto
+(etiqueta `mysql`) y requiere una instancia accesible y credenciales:
+
+```powershell
+$env:DB_URL="jdbc:mysql://127.0.0.1:3307/nexusmarket"; $env:DB_USER="..."; $env:DB_PASSWORD="..."
+mvn -B test -Dtest=PersistenceMysqlIntegrationTest -DexcludedTestTags=none
+```
 
 ## Arquitectura
 
@@ -95,26 +118,29 @@ El proyecto sigue una organización por capas con puertos y adaptadores:
 
 - **Dominio (`domain`)**: entidades y reglas de negocio, sin anotaciones de framework.
 - **Aplicación (`application`)**: casos de uso (puertos de entrada), servicios que los implementan y puertos de salida para la persistencia.
-- **Infraestructura (`infrastructure`)**: adaptadores que implementan los puertos de salida
-  (`persistence/memory` en memoria y `persistence/jpa` con entidades y mappers; los adaptadores JPA
-  de repositorio están **pendientes**).
+- **Infraestructura (`infrastructure`)**: adaptadores de salida (`persistence/jpa` es la
+  implementación por defecto; `persistence/memory` solo bajo el perfil `memory`) y adaptadores de
+  entrada (`web` con controladores, DTO y mappers).
 
 Las reglas de negocio que una entidad puede verificar por sí misma permanecen en el dominio
 (`Inventory.reserve`, `Order.changeStatus`); los servicios de aplicación las orquestan y no las
 duplican.
 
-## Estado y pendientes (2026-10-13)
+## Estado y pendientes (2026-10-15)
 
 - **Base de datos real: MySQL** (D-004 resuelta por el estudiante). **MongoDB no se implementa**.
-- **Adaptadores en memoria activos**: los `InMemory*` siguen siendo los **únicos adaptadores activos**
-  de los puertos de salida; los adaptadores **JPA están pendientes** (Fase 1.3).
-- **Entidades y mappers JPA**: 8 entidades separadas del dominio y 8 mappers dominio ↔ JPA
-  (implementados, **sin commitear**).
-- **Borde REST pendiente**: controllers, DTO, validación, manejo de errores y OpenAPI (Fase 2).
+- **Persistencia cerrada (Fases 1.1–1.7)**: los adaptadores **JPA son la implementación por defecto**
+  de los 8 puertos de salida; los `InMemory*` quedan **solo para pruebas** bajo el perfil `memory`.
+- **Esquema**: lo crea **Flyway** (`V1__initial_schema.sql`); Hibernate solo valida
+  (`spring.jpa.hibernate.ddl-auto=validate`).
+- **Borde REST (Fases 2.1–2.3 y 2.5)**: 6 controladores, 15 endpoints, DTO y mappers web, validación
+  de entrada (`@Valid` → 400) y `ActorContext` provisional por cabeceras `X-Actor-Id` /
+  `X-Actor-Role` (**no es autenticación**; la seguridad real es la Unidad 4).
+- **Pendiente de la Evidencia 5**: 2.4 (manejo global de errores), 2.6 (OpenAPI/Swagger),
+  2.7 (colección Postman) y 2.8 (pruebas end-to-end).
 - **Decisiones provisionales** (no definitivas): relaciones como columnas `Long` (P-1), conservar
-  `@ElementCollection` (P-2) y mantener las validaciones en la capa de aplicación (P-3).
-  La estrategia definitiva de esquema (`ddl-auto` vs. migraciones) sigue pendiente.
-- **Pruebas:** `mvn -B clean test` → **67/67 verdes**.
+  `@ElementCollection` (P-2) y mantener las validaciones de negocio en la capa de aplicación (P-3).
+- **Pruebas:** `mvn -B clean test` → **153/153 verdes**; integración contra MySQL 8.0 → **10/10**.
 - **Decisiones, supuestos y alcance real** del incremento: [docs/servicios-de-dominio.md](docs/servicios-de-dominio.md).
 - Preguntas abiertas del dominio (variantes, contenido del pedido, catálogo de estados,
   reportes): [docs/modelo-de-dominio.md](docs/modelo-de-dominio.md), sección 11.
