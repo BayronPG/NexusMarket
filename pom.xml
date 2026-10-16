@@ -22,6 +22,11 @@
     <properties>
         <maven.compiler.release>17</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <!-- Las pruebas de integracion contra MySQL real (tag "mysql") quedan
+             fuera del build por defecto: exigen una instancia y credenciales.
+             Ejecutarlas con:
+             mvn -B test -Dtest=PersistenceMysqlIntegrationTest -DexcludedTestTags=none -->
+        <excludedTestTags>mysql</excludedTestTags>
     </properties>
 
     <!--
@@ -48,6 +53,20 @@
             <scope>runtime</scope>
         </dependency>
 
+        <!-- Flyway es la fuente unica del esquema (Fase 1.5). Las versiones las
+             gestiona spring-boot-starter-parent (Flyway 10.20.1). -->
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-core</artifactId>
+        </dependency>
+
+        <!-- Flyway 10 separo el soporte de cada motor en modulos: sin
+             flyway-mysql, Flyway no reconoce MySQL. -->
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-mysql</artifactId>
+        </dependency>
+
         <!-- H2 embebida SOLO para el perfil de pruebas (application-test.properties).
              Alcance test: nunca se empaqueta con la aplicacion ni sustituye a MySQL. -->
         <dependency>
@@ -68,6 +87,13 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <excludedGroups>${excludedTestTags}</excludedGroups>
+                </configuration>
             </plugin>
         </plugins>
     </build>

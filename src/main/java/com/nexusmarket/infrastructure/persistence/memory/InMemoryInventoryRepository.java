@@ -8,6 +8,7 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Repository;
 
 /**
@@ -17,6 +18,7 @@ import org.springframework.stereotype.Repository;
  * persistence strategy (D-004 pending).</p>
  */
 @Repository
+@Profile("memory")
 public class InMemoryInventoryRepository implements InventoryRepository {
 
     private final Map<Long, Inventory> store = new ConcurrentHashMap<>();
