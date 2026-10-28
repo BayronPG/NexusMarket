@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.nexusmarket.application.context.ActorContext;
+import com.nexusmarket.application.error.ValidationException;
 import com.nexusmarket.domain.user.Role;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.MethodParameter;
@@ -66,13 +67,13 @@ class ActorContextArgumentResolverTest {
     void rejectsAMissingHeader() throws Exception {
         assertThatThrownBy(() -> resolver.resolveArgument(
                 parameter("withActor", ActorContext.class), null, request(null, "SELLER"), null))
-                .isInstanceOf(IllegalStateException.class);
+                .isInstanceOf(ValidationException.class);
     }
 
     @Test
     void rejectsAnUnknownRole() throws Exception {
         assertThatThrownBy(() -> resolver.resolveArgument(
                 parameter("withActor", ActorContext.class), null, request("10", "WIZARD"), null))
-                .isInstanceOf(IllegalStateException.class);
+                .isInstanceOf(ValidationException.class);
     }
 }

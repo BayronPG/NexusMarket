@@ -270,14 +270,14 @@ docs/ · README.md                          ← documentación de la evidencia
 | 2.1 | Controladores REST sobre los 6 puertos de entrada (15 endpoints) | ✅ Implementado |
 | 2.2 | DTO de entrada/salida + mappers web | ✅ Implementado |
 | 2.3 | Validación de entrada (`@Valid`, respuestas 400) | ✅ Implementado |
-| 2.4 | Manejo global de errores | ⏳ Pendiente |
+| 2.4 | Manejo global de errores | ✅ Implementado |
 | 2.5 | Resolución temporal del `ActorContext` (cabeceras HTTP) | ✅ Implementado |
 | 2.6 | OpenAPI / Swagger UI | ⏳ Pendiente |
 | 2.7 | Colección Postman/Bruno | ⏳ Pendiente |
 | 2.8 | Pruebas de integración end-to-end | ⏳ Pendiente |
 | 3 | Cierre de la evidencia (documentación y trazabilidad) | 🔄 En curso |
 
-**Pruebas:** `mvn -B clean test` → **153/153 verdes**; integración contra MySQL 8.0 → **10/10**
+**Pruebas:** `mvn -B clean test` → **164/164 verdes**; integración contra MySQL 8.0 → **10/10**
 (excluida del build por defecto mediante la etiqueta `mysql`).
 
 **Publicado:** `origin/main` en `46eaef3` (2026-10-15).

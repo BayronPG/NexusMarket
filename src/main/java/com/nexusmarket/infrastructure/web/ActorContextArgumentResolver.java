@@ -1,6 +1,7 @@
 package com.nexusmarket.infrastructure.web;
 
 import com.nexusmarket.application.context.ActorContext;
+import com.nexusmarket.application.error.ValidationException;
 import com.nexusmarket.domain.user.Role;
 import java.util.Locale;
 import org.springframework.core.MethodParameter;
@@ -45,11 +46,10 @@ public class ActorContextArgumentResolver implements HandlerMethodArgumentResolv
         String rawId = webRequest.getHeader(HEADER_ACTOR_ID);
         String rawRole = webRequest.getHeader(HEADER_ACTOR_ROLE);
         if (rawId == null || rawId.isBlank() || rawRole == null || rawRole.isBlank()) {
-            throw new IllegalStateException(
+            throw new ValidationException(
                     HEADER_ACTOR_ID + " and " + HEADER_ACTOR_ROLE + " headers are required (RG-01)");
         }
-        // The HTTP status for a malformed header is deliberately deferred to the
-        // global error handling of Fase 2.4.
+        // Fase 2.4: malformed headers are translated to 400 by GlobalExceptionHandler.
         return new ActorContext(Long.valueOf(rawId.trim()), parseRole(rawRole.trim()));
     }
 
@@ -57,7 +57,7 @@ public class ActorContextArgumentResolver implements HandlerMethodArgumentResolv
         try {
             return Role.valueOf(rawRole.toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException ex) {
-            throw new IllegalStateException(HEADER_ACTOR_ROLE + " is not a known role: " + rawRole);
+            throw new ValidationException(HEADER_ACTOR_ROLE + " is not a known role: " + rawRole);
         }
     }
 }

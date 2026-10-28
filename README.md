@@ -26,11 +26,10 @@ Incremento posterior a E2, **publicado** en `origin/main` (`46eaef3`, 2026-10-15
   **8 adaptadores JPA** de los puertos de salida; los adaptadores en memoria se conservan para pruebas
   bajo el perfil `memory`.
 - **Esquema con Flyway** (`V1__initial_schema.sql`) y `spring.jpa.hibernate.ddl-auto=validate`.
-- **Borde REST (Fases 2.1, 2.2, 2.3 y 2.5)**: 6 controladores sobre los 6 puertos de entrada
-  (**15 endpoints**), DTO y mappers web, validación `@Valid` (400) y resolución temporal del
-  `ActorContext` por cabeceras.
-- **Pendiente de la Fase 2**: manejo global de errores (2.4), OpenAPI (2.6), colección Postman (2.7)
-  y pruebas end-to-end (2.8).
+- **Borde REST (Fases 2.1–2.4 y 2.5)**: 6 controladores sobre los 6 puertos de entrada
+  (**15 endpoints**), DTO y mappers web, validación `@Valid` (400), manejo global de errores con
+  respuesta uniforme y resolución temporal del `ActorContext` por cabeceras.
+- **Pendiente de la Fase 2**: OpenAPI (2.6), colección Postman (2.7) y pruebas end-to-end (2.8).
 - **Asociaciones JPA**: siguen como columnas escalares `Long` (P-1); el esquema definitivo es Flyway.
 - Plan detallado: [docs/PLAN_API_WEB.md](docs/PLAN_API_WEB.md).
 
@@ -133,14 +132,15 @@ duplican.
   de los 8 puertos de salida; los `InMemory*` quedan **solo para pruebas** bajo el perfil `memory`.
 - **Esquema**: lo crea **Flyway** (`V1__initial_schema.sql`); Hibernate solo valida
   (`spring.jpa.hibernate.ddl-auto=validate`).
-- **Borde REST (Fases 2.1–2.3 y 2.5)**: 6 controladores, 15 endpoints, DTO y mappers web, validación
-  de entrada (`@Valid` → 400) y `ActorContext` provisional por cabeceras `X-Actor-Id` /
-  `X-Actor-Role` (**no es autenticación**; la seguridad real es la Unidad 4).
-- **Pendiente de la Evidencia 5**: 2.4 (manejo global de errores), 2.6 (OpenAPI/Swagger),
-  2.7 (colección Postman) y 2.8 (pruebas end-to-end).
+- **Borde REST (Fases 2.1–2.4 y 2.5)**: 6 controladores, 15 endpoints, DTO y mappers web, validación
+  de entrada (`@Valid` → 400), manejo global de errores (`@RestControllerAdvice` → 400/403/404/409/500)
+  y `ActorContext` provisional por cabeceras `X-Actor-Id` / `X-Actor-Role` (**no es autenticación**;
+  la seguridad real es la Unidad 4).
+- **Pendiente de la Evidencia 5**: 2.6 (OpenAPI/Swagger), 2.7 (colección Postman) y 2.8 (pruebas
+  end-to-end).
 - **Decisiones provisionales** (no definitivas): relaciones como columnas `Long` (P-1), conservar
   `@ElementCollection` (P-2) y mantener las validaciones de negocio en la capa de aplicación (P-3).
-- **Pruebas:** `mvn -B clean test` → **153/153 verdes**; integración contra MySQL 8.0 → **10/10**.
+- **Pruebas:** `mvn -B clean test` → **164/164 verdes**; integración contra MySQL 8.0 → **10/10**.
 - **Decisiones, supuestos y alcance real** del incremento: [docs/servicios-de-dominio.md](docs/servicios-de-dominio.md).
 - Preguntas abiertas del dominio (variantes, contenido del pedido, catálogo de estados,
   reportes): [docs/modelo-de-dominio.md](docs/modelo-de-dominio.md), sección 11.
