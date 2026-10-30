@@ -139,13 +139,16 @@ duplican.
   de entrada (`@Valid` → 400), manejo global de errores (`@RestControllerAdvice` → 400/403/404/409/500)
   y `ActorContext` provisional por cabeceras `X-Actor-Id` / `X-Actor-Role` (**no es autenticación**;
   la seguridad real es la Unidad 4).
-- **Evidencia 5**: 2.6 (OpenAPI de los 15 endpoints), 2.7 (colección Postman) y 2.8 (pruebas E2E de
-  los tres flujos reales) resueltas.
+- **Evidencia 5**: 2.6 (OpenAPI de los 15 endpoints), 2.7 (colección Postman), 2.8 (pruebas E2E de
+  los tres flujos reales) y 2.9 (paginación de los cuatro listados) resueltas.
+- **Paginación (2.9)**: los listados aceptan `page` (≥0), `size` (1-100, por defecto 20) y
+  `sort` (`campo` o `campo,asc|desc`); responden `content`, `page`, `size`, `totalElements` y
+  `totalPages`. Filtros opcionales: `sellerId` y `status` en productos, `warehouseId` en inventario.
 - **Calidad**: JaCoCo mide en la fase `test` y `mvn verify` exige ≥ 80 % líneas y ≥ 65 % ramas
-  (actual: 85.7 % líneas y 71.8 % ramas).
+  (actual: 86.0 % líneas y 70.8 % ramas).
 - **Decisiones provisionales** (no definitivas): relaciones como columnas `Long` (P-1), conservar
   `@ElementCollection` (P-2) y mantener las validaciones de negocio en la capa de aplicación (P-3).
-- **Pruebas:** `mvn -B clean test` → **187/187 verdes**; integración contra MySQL 8.0 → **10/10**.
+- **Pruebas:** `mvn -B clean test` → **211/211 verdes**; integración contra MySQL 8.0 → **10/10**.
 - **Decisiones, supuestos y alcance real** del incremento: [docs/servicios-de-dominio.md](docs/servicios-de-dominio.md).
 - Preguntas abiertas del dominio (variantes, contenido del pedido, catálogo de estados,
   reportes): [docs/modelo-de-dominio.md](docs/modelo-de-dominio.md), sección 11.

@@ -66,6 +66,8 @@ Formato: | ID | Fuente | Requisito | Componente | Evidencia | Prueba | Estado |
 | OpenAPI (2.6): 15 endpoints con @Tag/@Operation/@ApiResponse y cabeceras de actor | `infrastructure/web/controller/`, `OpenApiConfig.java` | `OpenApiDocsTest` | Implementado y probado |
 | Postman (2.7): colección de 15 requests | `docs/postman/NexusMarket.postman_collection.json` | - | Implementado (JSON validado) |
 | Pruebas E2E (2.8): 3 flujos reales y errores | `infrastructure/web/ApiFlowE2ETest.java` | `ApiFlowE2ETest` | Implementado y probado |
-| Cobertura JaCoCo con umbral (≥80 % líneas, ≥65 % ramas) | `pom.xml` | `mvn verify` | 85.7 % líneas / 71.8 % ramas |
+| Paginación (2.9): page/size/sort, máx. 100 y filtros | `application/query/`, controllers y adaptadores | `PageQueryTest`, `PageResultTest`, `JpaPagingTest`, `PageParamsValidationTest` | Implementado y probado |
+| Índices de los filtros (Flyway V2) | `resources/db/migration/V2__add_indexes.sql` | `JpaPagingTest` (H2 aplica la migración) | Implementado |
+| Cobertura JaCoCo con umbral (≥80 % líneas, ≥65 % ramas) | `pom.xml` | `mvn verify` | 86.0 % líneas / 70.8 % ramas |
 | Transaccionalidad de escrituras múltiples | `application/service/SellerRegistrationService.java` | `SellerRegistrationTransactionTest` | Implementado y probado |
 | Asociaciones y restricciones de esquema | — | — | Relaciones como columnas `Long` (P-1); esquema versionado con Flyway |

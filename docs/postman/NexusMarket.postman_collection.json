@@ -57,8 +57,18 @@
               { "key": "X-Actor-Id", "value": "{{actorId}}" },
               { "key": "X-Actor-Role", "value": "{{actorRole}}" }
             ],
-            "url": { "raw": "{{baseUrl}}/api/products/published", "host": ["{{baseUrl}}"], "path": ["api", "products", "published"] },
-            "description": "200 lista de productos | 400 cabeceras invalidas | 403 rol sin permiso"
+            "url": {
+              "raw": "{{baseUrl}}/api/products/published?page=0&size=20&sort=id,asc",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "products", "published"],
+              "query": [
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "20" },
+                { "key": "sort", "value": "id,asc" },
+                { "key": "sellerId", "value": "1", "disabled": true }
+              ]
+            },
+            "description": "200 pagina (content + page/size/totalElements/totalPages) | 400 page/size/sort invalidos o cabeceras | 403 rol sin permiso"
           }
         },
         {
@@ -69,8 +79,18 @@
               { "key": "X-Actor-Id", "value": "{{actorId}}" },
               { "key": "X-Actor-Role", "value": "{{actorRole}}" }
             ],
-            "url": { "raw": "{{baseUrl}}/api/products/mine", "host": ["{{baseUrl}}"], "path": ["api", "products", "mine"] },
-            "description": "200 productos del vendedor | 400 cabeceras invalidas | 403 rol sin permiso | 404 vendedor inexistente"
+            "url": {
+              "raw": "{{baseUrl}}/api/products/mine?page=0&size=20&sort=id,asc",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "products", "mine"],
+              "query": [
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "20" },
+                { "key": "sort", "value": "id,asc" },
+                { "key": "status", "value": "PUBLISHED", "disabled": true }
+              ]
+            },
+            "description": "200 pagina de productos del vendedor | 400 page/size/sort invalidos | 403 rol sin permiso | 404 vendedor inexistente"
           }
         }
       ]
@@ -123,12 +143,18 @@
               { "key": "X-Actor-Role", "value": "{{actorRole}}" }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/inventories?productId=1",
+              "raw": "{{baseUrl}}/api/inventories?productId=1&page=0&size=20&sort=id,asc",
               "host": ["{{baseUrl}}"],
               "path": ["api", "inventories"],
-              "query": [{ "key": "productId", "value": "1" }]
+              "query": [
+                { "key": "productId", "value": "1" },
+                { "key": "warehouseId", "value": "1", "disabled": true },
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "20" },
+                { "key": "sort", "value": "id,asc" }
+              ]
             },
-            "description": "200 stock del producto | 400 cabeceras o parametro invalidos | 403 rol sin permiso"
+            "description": "200 pagina de stock | 400 page/size/sort o parametros invalidos | 403 rol sin permiso"
           }
         }
       ]
@@ -269,12 +295,17 @@
               { "key": "X-Actor-Role", "value": "{{actorRole}}" }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/warehouses?sellerId=1",
+              "raw": "{{baseUrl}}/api/warehouses?sellerId=1&page=0&size=20&sort=id,asc",
               "host": ["{{baseUrl}}"],
               "path": ["api", "warehouses"],
-              "query": [{ "key": "sellerId", "value": "1" }]
+              "query": [
+                { "key": "sellerId", "value": "1" },
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "20" },
+                { "key": "sort", "value": "id,asc" }
+              ]
             },
-            "description": "200 bodegas | 400 cabeceras o parametro invalidos | 403 rol sin permiso"
+            "description": "200 pagina de bodegas | 400 page/size/sort invalidos | 403 rol sin permiso"
           }
         }
       ]
