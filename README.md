@@ -29,8 +29,10 @@ Incremento posterior a E2, **publicado** en `origin/main` (`46eaef3`, 2026-10-15
 - **Borde REST (Fases 2.1–2.4 y 2.5)**: 6 controladores sobre los 6 puertos de entrada
   (**15 endpoints**), DTO y mappers web, validación `@Valid` (400), manejo global de errores con
   respuesta uniforme y resolución temporal del `ActorContext` por cabeceras.
-- **Fase 2**: OpenAPI (2.6) documentado con metadatos mínimos en `OpenApiConfig` y Swagger UI
-  (`springdoc-openapi` 2.8.9); pendientes la colección Postman (2.7) y las pruebas end-to-end (2.8).
+- **OpenAPI (2.6)**: los 15 endpoints documentados con `@Tag`, `@Operation`, `@ApiResponse` y las
+  cabeceras `X-Actor-Id` / `X-Actor-Role`; `/v3/api-docs` y Swagger UI verificados con `OpenApiDocsTest`.
+- **Postman (2.7)**: `docs/postman/NexusMarket.postman_collection.json` (6 carpetas, 15 requests).
+- **Pendiente**: pruebas end-to-end (2.8).
 - **Asociaciones JPA**: siguen como columnas escalares `Long` (P-1); el esquema definitivo es Flyway.
 - Plan detallado: [docs/PLAN_API_WEB.md](docs/PLAN_API_WEB.md).
 
@@ -137,11 +139,12 @@ duplican.
   de entrada (`@Valid` → 400), manejo global de errores (`@RestControllerAdvice` → 400/403/404/409/500)
   y `ActorContext` provisional por cabeceras `X-Actor-Id` / `X-Actor-Role` (**no es autenticación**;
   la seguridad real es la Unidad 4).
-- **Evidencia 5**: 2.6 (OpenAPI/Swagger) resuelta con metadatos mínimos; pendientes 2.7 (colección
-  Postman) y 2.8 (pruebas end-to-end).
+- **Evidencia 5**: 2.6 (OpenAPI de los 15 endpoints) y 2.7 (colección Postman) resueltas; pendiente
+  2.8 (pruebas end-to-end).
+- **Calidad**: JaCoCo mide cobertura en la fase `test` (sin umbral): 83.9 % líneas y 67.3 % ramas.
 - **Decisiones provisionales** (no definitivas): relaciones como columnas `Long` (P-1), conservar
   `@ElementCollection` (P-2) y mantener las validaciones de negocio en la capa de aplicación (P-3).
-- **Pruebas:** `mvn -B clean test` → **165/165 verdes**; integración contra MySQL 8.0 → **10/10**.
+- **Pruebas:** `mvn -B clean test` → **167/167 verdes**; integración contra MySQL 8.0 → **10/10**.
 - **Decisiones, supuestos y alcance real** del incremento: [docs/servicios-de-dominio.md](docs/servicios-de-dominio.md).
 - Preguntas abiertas del dominio (variantes, contenido del pedido, catálogo de estados,
   reportes): [docs/modelo-de-dominio.md](docs/modelo-de-dominio.md), sección 11.

@@ -249,7 +249,7 @@ sincronización documental `e7d2c1e`):
 | Borde REST: **6 controladores, 15 endpoints**, DTO, mappers web y validación `@Valid` | Implementado y probado |
 | `ActorContext` temporal por cabeceras (`X-Actor-Id`, `X-Actor-Role`) | Implementado y probado (provisional; no es autenticación) |
 | Manejo global de errores (2.4) | Implementado y probado |
-| OpenAPI (2.6): metadatos (`OpenApiConfig`) y Swagger UI con `springdoc-openapi` 2.8.9 | Implementado (endpoints aún sin documentar) |
+| OpenAPI (2.6): 15 endpoints documentados y Swagger UI con `springdoc-openapi` 2.8.9 | Implementado y probado |
 | Colección Postman (2.7) y pruebas E2E (2.8) | **Pendiente** |
 | Transaccionalidad de escrituras múltiples (`SellerRegistrationService.registerSeller`) | Implementado y probado |
 | Asociaciones JPA y restricciones de BD | Columnas escalares `Long` (P-1); esquema versionado con Flyway |

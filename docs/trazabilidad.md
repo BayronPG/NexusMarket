@@ -63,7 +63,9 @@ Formato: | ID | Fuente | Requisito | Componente | Evidencia | Prueba | Estado |
 | Validación de entrada (`@Valid` → 400) | DTO de entrada | `*ControllerTest` | Implementado y probado |
 | `ActorContext` temporal por cabeceras | `infrastructure/web/ActorContextArgumentResolver.java` | `ActorContextArgumentResolverTest` | Implementado y probado (provisional; no es autenticación) |
 | Manejo global de errores (`@RestControllerAdvice`) | `infrastructure/web/error/` | `GlobalExceptionHandlerTest` | Implementado y probado (400/403/404/409/500) |
-| OpenAPI (2.6): metadatos y Swagger UI | `infrastructure/web/OpenApiConfig.java` | - | Implementado (endpoints sin documentar) |
-| Postman (2.7) y E2E (2.8) | - | - | **Pendiente** |
+| OpenAPI (2.6): 15 endpoints con @Tag/@Operation/@ApiResponse y cabeceras de actor | `infrastructure/web/controller/`, `OpenApiConfig.java` | `OpenApiDocsTest` | Implementado y probado |
+| Postman (2.7): colección de 15 requests | `docs/postman/NexusMarket.postman_collection.json` | - | Implementado (JSON validado) |
+| Pruebas E2E (2.8) | - | - | **Pendiente** |
+| Cobertura JaCoCo (sin umbral) | `pom.xml` | `mvn test` | Medida: 83.9 % líneas / 67.3 % ramas |
 | Transaccionalidad de escrituras múltiples | `application/service/SellerRegistrationService.java` | `SellerRegistrationTransactionTest` | Implementado y probado |
 | Asociaciones y restricciones de esquema | — | — | Relaciones como columnas `Long` (P-1); esquema versionado con Flyway |
