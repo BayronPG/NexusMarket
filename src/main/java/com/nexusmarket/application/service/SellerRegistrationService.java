@@ -13,6 +13,7 @@ import com.nexusmarket.domain.user.Role;
 import com.nexusmarket.domain.user.User;
 import com.nexusmarket.domain.user.UserStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Application service that registers sellers.
@@ -37,6 +38,7 @@ public class SellerRegistrationService implements RegisterSellerUseCase {
     }
 
     @Override
+    @Transactional
     public Seller registerSeller(ActorContext actor, Command command) {
         Authorization.requireAnyRole(actor, Role.ADMINISTRATOR);
         Validation.requireNotNull(command, "command");
