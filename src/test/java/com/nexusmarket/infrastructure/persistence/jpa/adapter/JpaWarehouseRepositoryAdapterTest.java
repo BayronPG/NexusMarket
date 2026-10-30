@@ -2,6 +2,7 @@ package com.nexusmarket.infrastructure.persistence.jpa.adapter;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.nexusmarket.application.query.PageQuery;
 import com.nexusmarket.domain.warehouse.Warehouse;
 import com.nexusmarket.domain.warehouse.WarehouseType;
 import com.nexusmarket.infrastructure.persistence.jpa.repository.SpringDataWarehouseRepository;
@@ -88,7 +89,8 @@ class JpaWarehouseRepositoryAdapterTest {
         adapter.save(newSellerWarehouse(100L));
         adapter.save(newSellerWarehouse(200L));
 
-        List<Warehouse> result = adapter.findBySellerId(100L);
+        List<Warehouse> result = adapter.findBySellerId(100L,
+                PageQuery.of(0, 20, "id,asc")).content();
 
         assertThat(result).hasSize(2);
         assertThat(result).allSatisfy(
@@ -97,6 +99,6 @@ class JpaWarehouseRepositoryAdapterTest {
 
     @Test
     void findBySellerIdReturnsEmptyWhenAbsent() {
-        assertThat(adapter.findBySellerId(404L)).isEmpty();
+        assertThat(adapter.findBySellerId(404L, PageQuery.of(0, 20, "id,asc")).content()).isEmpty();
     }
 }

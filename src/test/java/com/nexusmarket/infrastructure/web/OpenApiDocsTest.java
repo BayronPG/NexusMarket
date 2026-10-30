@@ -42,6 +42,18 @@ class OpenApiDocsTest {
     }
 
     @Test
+    void apiDocsExposeThePaginationParameters() throws Exception {
+        mockMvc.perform(get("/v3/api-docs"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.paths['/api/products/published'].get.parameters[?(@.name=='page')]")
+                        .exists())
+                .andExpect(jsonPath("$.paths['/api/products/published'].get.parameters[?(@.name=='size')]")
+                        .exists())
+                .andExpect(jsonPath("$.paths['/api/products/published'].get.parameters[?(@.name=='sort')]")
+                        .exists());
+    }
+
+    @Test
     void swaggerUiIsServed() throws Exception {
         mockMvc.perform(get("/swagger-ui/index.html"))
                 .andExpect(status().isOk());

@@ -2,6 +2,7 @@ package com.nexusmarket.infrastructure.persistence.jpa.adapter;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.nexusmarket.application.query.PageQuery;
 import com.nexusmarket.domain.inventory.Inventory;
 import com.nexusmarket.infrastructure.persistence.jpa.repository.SpringDataInventoryRepository;
 import java.util.List;
@@ -91,7 +92,8 @@ class JpaInventoryRepositoryAdapterTest {
         adapter.save(newInventory(1L, 20L, 7));
         adapter.save(newInventory(2L, 10L, 3));
 
-        List<Inventory> result = adapter.findByProductId(1L);
+        List<Inventory> result = adapter.findByProductId(1L, null,
+                PageQuery.of(0, 20, "id,asc")).content();
 
         assertThat(result).hasSize(2);
         assertThat(result).allSatisfy(

@@ -8,6 +8,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.nexusmarket.application.context.ActorContext;
+import com.nexusmarket.application.query.PageQuery;
+import com.nexusmarket.application.query.PageResult;
 import com.nexusmarket.application.port.in.ManageCatalogUseCase;
 import com.nexusmarket.domain.catalog.Product;
 import com.nexusmarket.domain.catalog.ProductStatus;
@@ -85,28 +87,32 @@ class CatalogControllerTest {
     }
 
     @Test
-    void findPublishedDelegatesToTheUseCaseAndReturnsAList() throws Exception {
-        given(manageCatalogUseCase.findPublishedProducts(new ActorContext(9L, Role.BUYER)))
-                .willReturn(List.of(product(ProductStatus.PUBLISHED)));
+    void findPublishedDelegatesToTheUseCaseAndReturnsAPage() throws Exception {
+        given(manageCatalogUseCase.findPublishedProducts(new ActorContext(9L, Role.BUYER), null,
+                PageQuery.of(0, 20, "id,asc")))
+                .willReturn(PageResult.of(List.of(product(ProductStatus.PUBLISHED)), 0, 20, 1));
 
         mockMvc.perform(get("/api/products/published")
                         .header(ActorContextArgumentResolver.HEADER_ACTOR_ID, "9")
                         .header(ActorContextArgumentResolver.HEADER_ACTOR_ROLE, "BUYER"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].id").value(1))
-                .andExpect(jsonPath("$[0].sellerId").value(2));
+                .andExpect(jsonPath("$.content[0].id").value(1))
+                .andExpect(jsonPath("$.content[0].sellerId").value(2))
+                .andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.totalPages").value(1));
     }
 
     @Test
-    void findOwnDelegatesToTheUseCaseAndReturnsAList() throws Exception {
-        given(manageCatalogUseCase.findOwnProducts(new ActorContext(2L, Role.SELLER)))
-                .willReturn(List.of(product(ProductStatus.PUBLISHED)));
+    void findOwnDelegatesToTheUseCaseAndReturnsAPage() throws Exception {
+        given(manageCatalogUseCase.findOwnProducts(new ActorContext(2L, Role.SELLER), null,
+                PageQuery.of(0, 20, "id,asc")))
+                .willReturn(PageResult.of(List.of(product(ProductStatus.PUBLISHED)), 0, 20, 1));
 
         mockMvc.perform(get("/api/products/mine")
                         .header(ActorContextArgumentResolver.HEADER_ACTOR_ID, "2")
                         .header(ActorContextArgumentResolver.HEADER_ACTOR_ROLE, "SELLER"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].id").value(1));
+                .andExpect(jsonPath("$.content[0].id").value(1));
     }
 
     @Test

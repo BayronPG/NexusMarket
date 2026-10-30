@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.nexusmarket.application.context.ActorContext;
+import com.nexusmarket.application.query.PageQuery;
 import com.nexusmarket.application.error.AuthorizationException;
 import com.nexusmarket.application.error.NotFoundException;
 import com.nexusmarket.application.error.ValidationException;
@@ -114,7 +115,7 @@ class CatalogServiceTest {
         service.registerProduct(seller,
                 new RegisterProductCommand(ProductType.DIGITAL, ProductStatus.SUSPENDED, null));
 
-        assertThat(service.findPublishedProducts(buyer))
+        assertThat(service.findPublishedProducts(buyer, null, PageQuery.of(0, 20, "id,asc")).content())
                 .extracting(Product::getStatus)
                 .containsOnly(ProductStatus.PUBLISHED);
     }
@@ -126,6 +127,6 @@ class CatalogServiceTest {
         service.registerProduct(otherSeller,
                 new RegisterProductCommand(ProductType.DIGITAL, ProductStatus.PUBLISHED, null));
 
-        assertThat(service.findOwnProducts(seller)).hasSize(1);
+        assertThat(service.findOwnProducts(seller, null, PageQuery.of(0, 20, "id,asc")).content()).hasSize(1);
     }
 }

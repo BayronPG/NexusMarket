@@ -171,6 +171,42 @@ class ApiFlowE2ETest {
                 .andExpect(status().isNotFound());
     }
 
+    @Test
+    void publishedProductsCanBePagedAndFilteredBySeller() throws Exception {
+        long sellerId = registerSeller("helena");
+        long userId = sellerUserId(sellerId);
+        for (int i = 0; i < 2; i++) {
+            mockMvc.perform(post("/api/products")
+                            .header(ACTOR_ID, userId).header(ACTOR_ROLE, "SELLER")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"type\":\"PHYSICAL\",\"status\":\"PUBLISHED\",\"variants\":[]}"))
+                    .andExpect(status().isOk());
+        }
+
+        mockMvc.perform(get("/api/products/published")
+                        .param("sellerId", String.valueOf(sellerId))
+                        .param("page", "0")
+                        .param("size", "1")
+                        .param("sort", "id,desc")
+                        .header(ACTOR_ID, userId).header(ACTOR_ROLE, "BUYER"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(1))
+                .andExpect(jsonPath("$.page").value(0))
+                .andExpect(jsonPath("$.size").value(1))
+                .andExpect(jsonPath("$.totalElements").value(2))
+                .andExpect(jsonPath("$.totalPages").value(2));
+    }
+
+    @Test
+    void anInvalidPageSizeIsRejected() throws Exception {
+        long userId = createBuyer("irene");
+
+        mockMvc.perform(get("/api/products/published")
+                        .param("size", "500")
+                        .header(ACTOR_ID, userId).header(ACTOR_ROLE, "BUYER"))
+                .andExpect(status().isBadRequest());
+    }
+
     private long registerSeller(String name) throws Exception {
         String unique = name + System.nanoTime();
         JsonNode body = bodyOf(mockMvc.perform(post("/api/sellers")

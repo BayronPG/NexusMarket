@@ -7,6 +7,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.nexusmarket.application.context.ActorContext;
+import com.nexusmarket.application.query.PageQuery;
+import com.nexusmarket.application.query.PageResult;
 import com.nexusmarket.application.port.in.ManageInventoryUseCase;
 import com.nexusmarket.domain.inventory.Inventory;
 import com.nexusmarket.domain.user.Role;
@@ -81,17 +83,19 @@ class InventoryControllerTest {
     }
 
     @Test
-    void findByProductDelegatesToTheUseCaseAndReturnsAList() throws Exception {
-        given(manageInventoryUseCase.findStockByProduct(new ActorContext(1L, Role.SUPERVISOR), 1L))
-                .willReturn(List.of(inventory()));
+    void findByProductDelegatesToTheUseCaseAndReturnsAPage() throws Exception {
+        given(manageInventoryUseCase.findStockByProduct(new ActorContext(1L, Role.SUPERVISOR), 1L, null,
+                PageQuery.of(0, 20, "id,asc")))
+                .willReturn(PageResult.of(List.of(inventory()), 0, 20, 1));
 
         mockMvc.perform(get("/api/inventories")
                         .param("productId", "1")
                         .header(ActorContextArgumentResolver.HEADER_ACTOR_ID, "1")
                         .header(ActorContextArgumentResolver.HEADER_ACTOR_ROLE, "SUPERVISOR"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].id").value(9))
-                .andExpect(jsonPath("$[0].quantity").value(7));
+                .andExpect(jsonPath("$.content[0].id").value(9))
+                .andExpect(jsonPath("$.content[0].quantity").value(7))
+                .andExpect(jsonPath("$.totalElements").value(1));
     }
 
     @Test

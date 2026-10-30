@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.nexusmarket.application.context.ActorContext;
+import com.nexusmarket.application.query.PageQuery;
 import com.nexusmarket.application.error.AuthorizationException;
 import com.nexusmarket.application.error.BusinessRuleException;
 import com.nexusmarket.application.error.NotFoundException;
@@ -151,6 +152,7 @@ class InventoryServiceTest {
         Long anotherWarehouse = warehouses.save(new Warehouse(null, WarehouseType.MARKETPLACE)).getId();
         service.registerStock(seller, new RegisterStockCommand(productId, anotherWarehouse, 7));
 
-        assertThat(service.findStockByProduct(seller, productId)).hasSize(2);
+        assertThat(service.findStockByProduct(seller, productId, null,
+                PageQuery.of(0, 20, "id,asc")).content()).hasSize(2);
     }
 }

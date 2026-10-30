@@ -7,6 +7,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.nexusmarket.application.context.ActorContext;
+import com.nexusmarket.application.query.PageQuery;
+import com.nexusmarket.application.query.PageResult;
 import com.nexusmarket.application.port.in.ManageWarehousesUseCase;
 import com.nexusmarket.domain.user.Role;
 import com.nexusmarket.domain.warehouse.Warehouse;
@@ -72,17 +74,19 @@ class WarehouseControllerTest {
     }
 
     @Test
-    void findBySellerDelegatesToTheUseCaseAndReturnsAList() throws Exception {
-        given(manageWarehousesUseCase.findWarehousesBySeller(new ActorContext(4L, Role.SELLER), 4L))
-                .willReturn(List.of(warehouse()));
+    void findBySellerDelegatesToTheUseCaseAndReturnsAPage() throws Exception {
+        given(manageWarehousesUseCase.findWarehousesBySeller(new ActorContext(4L, Role.SELLER), 4L,
+                PageQuery.of(0, 20, "id,asc")))
+                .willReturn(PageResult.of(List.of(warehouse()), 0, 20, 1));
 
         mockMvc.perform(get("/api/warehouses")
                         .param("sellerId", "4")
                         .header(ActorContextArgumentResolver.HEADER_ACTOR_ID, "4")
                         .header(ActorContextArgumentResolver.HEADER_ACTOR_ROLE, "SELLER"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].id").value(3))
-                .andExpect(jsonPath("$[0].sellerId").value(4));
+                .andExpect(jsonPath("$.content[0].id").value(3))
+                .andExpect(jsonPath("$.content[0].sellerId").value(4))
+                .andExpect(jsonPath("$.totalPages").value(1));
     }
 
     @Test

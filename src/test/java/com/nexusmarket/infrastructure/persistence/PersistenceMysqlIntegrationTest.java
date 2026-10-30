@@ -154,7 +154,8 @@ class PersistenceMysqlIntegrationTest {
         Warehouse saved = warehouseRepository.save(warehouse);
 
         assertThat(saved.getId()).isNotNull();
-        assertThat(warehouseRepository.findBySellerId(3000L)).hasSize(1);
+        assertThat(warehouseRepository.findBySellerId(3000L,
+                com.nexusmarket.application.query.PageQuery.of(0, 20, "id,asc")).content()).hasSize(1);
     }
 
     @Test
@@ -168,7 +169,8 @@ class PersistenceMysqlIntegrationTest {
         Product saved = productRepository.save(product);
 
         assertThat(saved.getId()).isNotNull();
-        assertThat(productRepository.findByStatus(ProductStatus.PUBLISHED))
+        assertThat(productRepository.findByStatus(ProductStatus.PUBLISHED, null,
+                com.nexusmarket.application.query.PageQuery.of(0, 20, "id,asc")).content())
                 .anySatisfy(found -> assertThat(found.getId()).isEqualTo(saved.getId()));
     }
 

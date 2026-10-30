@@ -2,6 +2,7 @@ package com.nexusmarket.infrastructure.persistence.jpa.adapter;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.nexusmarket.application.query.PageQuery;
 import com.nexusmarket.domain.catalog.Product;
 import com.nexusmarket.domain.catalog.ProductStatus;
 import com.nexusmarket.domain.catalog.ProductType;
@@ -86,7 +87,7 @@ class JpaProductRepositoryAdapterTest {
         adapter.save(newProduct(100L, ProductStatus.SUSPENDED));
         adapter.save(newProduct(200L, ProductStatus.PUBLISHED));
 
-        List<Product> result = adapter.findBySellerId(100L);
+        List<Product> result = adapter.findBySellerId(100L, null, PageQuery.of(0, 20, "id,asc")).content();
 
         assertThat(result).hasSize(2);
         assertThat(result).allSatisfy(
@@ -99,7 +100,8 @@ class JpaProductRepositoryAdapterTest {
         adapter.save(newProduct(100L, ProductStatus.SUSPENDED));
         adapter.save(newProduct(200L, ProductStatus.PUBLISHED));
 
-        List<Product> result = adapter.findByStatus(ProductStatus.PUBLISHED);
+        List<Product> result = adapter.findByStatus(ProductStatus.PUBLISHED, null,
+                PageQuery.of(0, 20, "id,asc")).content();
 
         assertThat(result).hasSize(2);
         assertThat(result).allSatisfy(
@@ -116,6 +118,6 @@ class JpaProductRepositoryAdapterTest {
 
     @Test
     void findBySellerIdReturnsEmptyWhenAbsent() {
-        assertThat(adapter.findBySellerId(404L)).isEmpty();
+        assertThat(adapter.findBySellerId(404L, null, PageQuery.of(0, 20, "id,asc")).content()).isEmpty();
     }
 }
