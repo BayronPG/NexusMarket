@@ -13,7 +13,7 @@
 | **E1 - Modelo de dominio del negocio** | 10 % | Participantes, conceptos, relaciones, reglas y validaciones | `docs/modelo-de-dominio.md`, `src/main/java/com/nexusmarket/domain/` | Modelo documentado + clases de dominio | Entregado |
 | **Parcial individual de modelado** | 20 % | Decisiones de modelado y trazabilidad requisito → componente | `docs/modelo-de-dominio.md`, `docs/trazabilidad.md`, `domain/` | Matriz de trazabilidad OBJ/RN/RG | Realizado |
 | **E2 - Servicios de dominio y/o aplicación** | 10 % | 6 servicios de aplicación, puertos de entrada/salida y pruebas | `docs/servicios-de-dominio.md`, `application/`, `src/test/java/.../application/` | 6 clases de servicio + pruebas con JUnit 5/AssertJ | Implementado |
-| **Incremento de persistencia + API Web (Evidencia 5)** | 20 % | JPA/Hibernate, Flyway, MySQL, 6 controladores y 15 endpoints | `infrastructure/persistence/jpa/`, `infrastructure/web/`, `db/migration/`, `docs/PLAN_API_WEB.md` | `mvn -B test`: 165 pruebas, 0 fallos | **En curso**: faltan 2.7 y 2.8 (2.6 resuelta con metadatos) |
+| **Incremento de persistencia + API Web (Evidencia 5)** | 20 % | JPA/Hibernate, Flyway, MySQL, 6 controladores y 15 endpoints | `infrastructure/persistence/jpa/`, `infrastructure/web/`, `db/migration/`, `docs/PLAN_API_WEB.md` | `mvn -B test`: 187 pruebas, 0 fallos | **Completas**: fases 2.1-2.8 |
 | **Seguridad real (Unidad 4)** | — | Spring Security y autenticación real | — | — | Fuera de este alcance |
 
 El incremento de persistencia y API se publicó en `origin/main` en `46eaef3`; la sincronización

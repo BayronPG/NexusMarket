@@ -139,12 +139,13 @@ duplican.
   de entrada (`@Valid` → 400), manejo global de errores (`@RestControllerAdvice` → 400/403/404/409/500)
   y `ActorContext` provisional por cabeceras `X-Actor-Id` / `X-Actor-Role` (**no es autenticación**;
   la seguridad real es la Unidad 4).
-- **Evidencia 5**: 2.6 (OpenAPI de los 15 endpoints) y 2.7 (colección Postman) resueltas; pendiente
-  2.8 (pruebas end-to-end).
-- **Calidad**: JaCoCo mide cobertura en la fase `test` (sin umbral): 83.9 % líneas y 67.3 % ramas.
+- **Evidencia 5**: 2.6 (OpenAPI de los 15 endpoints), 2.7 (colección Postman) y 2.8 (pruebas E2E de
+  los tres flujos reales) resueltas.
+- **Calidad**: JaCoCo mide en la fase `test` y `mvn verify` exige ≥ 80 % líneas y ≥ 65 % ramas
+  (actual: 85.7 % líneas y 71.8 % ramas).
 - **Decisiones provisionales** (no definitivas): relaciones como columnas `Long` (P-1), conservar
   `@ElementCollection` (P-2) y mantener las validaciones de negocio en la capa de aplicación (P-3).
-- **Pruebas:** `mvn -B clean test` → **167/167 verdes**; integración contra MySQL 8.0 → **10/10**.
+- **Pruebas:** `mvn -B clean test` → **187/187 verdes**; integración contra MySQL 8.0 → **10/10**.
 - **Decisiones, supuestos y alcance real** del incremento: [docs/servicios-de-dominio.md](docs/servicios-de-dominio.md).
 - Preguntas abiertas del dominio (variantes, contenido del pedido, catálogo de estados,
   reportes): [docs/modelo-de-dominio.md](docs/modelo-de-dominio.md), sección 11.

@@ -65,7 +65,7 @@ Formato: | ID | Fuente | Requisito | Componente | Evidencia | Prueba | Estado |
 | Manejo global de errores (`@RestControllerAdvice`) | `infrastructure/web/error/` | `GlobalExceptionHandlerTest` | Implementado y probado (400/403/404/409/500) |
 | OpenAPI (2.6): 15 endpoints con @Tag/@Operation/@ApiResponse y cabeceras de actor | `infrastructure/web/controller/`, `OpenApiConfig.java` | `OpenApiDocsTest` | Implementado y probado |
 | Postman (2.7): colección de 15 requests | `docs/postman/NexusMarket.postman_collection.json` | - | Implementado (JSON validado) |
-| Pruebas E2E (2.8) | - | - | **Pendiente** |
-| Cobertura JaCoCo (sin umbral) | `pom.xml` | `mvn test` | Medida: 83.9 % líneas / 67.3 % ramas |
+| Pruebas E2E (2.8): 3 flujos reales y errores | `infrastructure/web/ApiFlowE2ETest.java` | `ApiFlowE2ETest` | Implementado y probado |
+| Cobertura JaCoCo con umbral (≥80 % líneas, ≥65 % ramas) | `pom.xml` | `mvn verify` | 85.7 % líneas / 71.8 % ramas |
 | Transaccionalidad de escrituras múltiples | `application/service/SellerRegistrationService.java` | `SellerRegistrationTransactionTest` | Implementado y probado |
 | Asociaciones y restricciones de esquema | — | — | Relaciones como columnas `Long` (P-1); esquema versionado con Flyway |
