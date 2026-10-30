@@ -1,6 +1,8 @@
 package com.nexusmarket.application.service;
 
 import com.nexusmarket.application.context.ActorContext;
+import com.nexusmarket.application.query.PageQuery;
+import com.nexusmarket.application.query.PageResult;
 import com.nexusmarket.application.error.NotFoundException;
 import com.nexusmarket.application.error.ValidationException;
 import com.nexusmarket.application.port.in.ManageWarehousesUseCase;
@@ -60,8 +62,8 @@ public class WarehouseService implements ManageWarehousesUseCase {
     }
 
     @Override
-    public List<Warehouse> findWarehousesBySeller(ActorContext actor, Long sellerId) {
+    public PageResult<Warehouse> findWarehousesBySeller(ActorContext actor, Long sellerId, PageQuery query) {
         Authorization.requireAnyRole(actor, Role.ADMINISTRATOR);
-        return warehouseRepository.findBySellerId(sellerId);
+        return warehouseRepository.findBySellerId(sellerId, query);
     }
 }

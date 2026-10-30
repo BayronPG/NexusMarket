@@ -1,6 +1,8 @@
 package com.nexusmarket.application.port.in;
 
 import com.nexusmarket.application.context.ActorContext;
+import com.nexusmarket.application.query.PageQuery;
+import com.nexusmarket.application.query.PageResult;
 import com.nexusmarket.domain.catalog.Product;
 import com.nexusmarket.domain.catalog.ProductStatus;
 import com.nexusmarket.domain.catalog.ProductType;
@@ -49,16 +51,20 @@ public interface ManageCatalogUseCase {
     /**
      * Lists the products visible in the public catalog.
      *
-     * @param actor authenticated actor
-     * @return the published products
+     * @param actor    authenticated actor
+     * @param sellerId optional seller filter; null means every seller
+     * @param query    pagination and sort
+     * @return one page of published products
      */
-    List<Product> findPublishedProducts(ActorContext actor);
+    PageResult<Product> findPublishedProducts(ActorContext actor, Long sellerId, PageQuery query);
 
     /**
      * Lists the products registered by the actor.
      *
-     * @param actor authenticated actor; must hold the SELLER role
-     * @return the products of the seller
+     * @param actor  authenticated actor; must hold the SELLER role
+     * @param status optional status filter; null means every status
+     * @param query  pagination and sort
+     * @return one page of the seller products
      */
-    List<Product> findOwnProducts(ActorContext actor);
+    PageResult<Product> findOwnProducts(ActorContext actor, ProductStatus status, PageQuery query);
 }

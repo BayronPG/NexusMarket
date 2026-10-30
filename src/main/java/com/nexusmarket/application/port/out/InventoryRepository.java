@@ -1,5 +1,7 @@
 package com.nexusmarket.application.port.out;
 
+import com.nexusmarket.application.query.PageQuery;
+import com.nexusmarket.application.query.PageResult;
 import com.nexusmarket.domain.inventory.Inventory;
 import java.util.List;
 import java.util.Optional;
@@ -20,8 +22,8 @@ public interface InventoryRepository {
     /** Finds the stock of a product in a concrete warehouse (RN-09). */
     Optional<Inventory> findByProductIdAndWarehouseId(Long productId, Long warehouseId);
 
-    /** Lists the stock of a product across every warehouse (distributed inventory). */
-    List<Inventory> findByProductId(Long productId);
+    /** Lists the stock of a product across the warehouses, optionally filtered by warehouse. */
+    PageResult<Inventory> findByProductId(Long productId, Long warehouseId, PageQuery query);
 
     /** Lists every stored inventory record. */
     List<Inventory> findAll();

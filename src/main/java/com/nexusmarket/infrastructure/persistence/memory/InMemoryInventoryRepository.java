@@ -1,7 +1,11 @@
 package com.nexusmarket.infrastructure.persistence.memory;
 
 import com.nexusmarket.application.port.out.InventoryRepository;
+import com.nexusmarket.application.query.PageQuery;
+import com.nexusmarket.application.query.PageResult;
 import com.nexusmarket.domain.inventory.Inventory;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -15,7 +19,7 @@ import org.springframework.stereotype.Repository;
  * TEMPORARY in-memory adapter for {@link InventoryRepository}.
  *
  * <p>See {@link InMemoryUserRepository} for the reason of this temporary
- * persistence strategy (D-004 pending).</p>
+ * persistence strategy (D-004 pending). Pagination mirrors the JPA adapter.</p>
  */
 @Repository
 @Profile("memory")
@@ -47,14 +51,34 @@ public class InMemoryInventoryRepository implements InventoryRepository {
     }
 
     @Override
-    public List<Inventory> findByProductId(Long productId) {
-        return store.values().stream()
-                .filter(inventory -> productId != null && productId.equals(inventory.getProductId()))
+    public PageResult<Inventory> findByProductId(Long productId, Long warehouseId, PageQuery query) {
+        List<Inventory> filtered = store.values().stream()
+                .filter(inventory -> productId == null || productId.equals(inventory.getProductId()))
+                .filter(inventory -> warehouseId == null
+                        || warehouseId.equals(inventory.getWarehouseId()))
+                .sorted(comparator(query))
                 .collect(Collectors.toList());
+        if (query.descending()) {
+            Collections.reverse(filtered);
+        }
+        return PageResult.slice(filtered, query);
     }
 
     @Override
     public List<Inventory> findAll() {
         return List.copyOf(store.values());
+    }
+
+    private Comparator<Inventory> comparator(PageQuery query) {
+        return switch (query.field()) {
+            case "id" -> Comparator.comparing(Inventory::getId, Comparator.nullsLast(Long::compareTo));
+            case "quantity" -> Comparator.comparingInt(Inventory::getQuantity);
+            case "damagedQuantity" -> Comparator.comparingInt(Inventory::getDamagedQuantity);
+            case "productId" ->
+                    Comparator.comparing(Inventory::getProductId, Comparator.nullsLast(Long::compareTo));
+            case "warehouseId" ->
+                    Comparator.comparing(Inventory::getWarehouseId, Comparator.nullsLast(Long::compareTo));
+            default -> throw new IllegalArgumentException("sort field not allowed: " + query.field());
+        };
     }
 }

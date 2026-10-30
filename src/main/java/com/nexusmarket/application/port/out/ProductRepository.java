@@ -1,5 +1,7 @@
 package com.nexusmarket.application.port.out;
 
+import com.nexusmarket.application.query.PageQuery;
+import com.nexusmarket.application.query.PageResult;
 import com.nexusmarket.domain.catalog.Product;
 import com.nexusmarket.domain.catalog.ProductStatus;
 import java.util.List;
@@ -18,11 +20,11 @@ public interface ProductRepository {
     /** Finds a product by its identifier. */
     Optional<Product> findById(Long id);
 
-    /** Lists the products registered by a seller. */
-    List<Product> findBySellerId(Long sellerId);
+    /** Lists the products registered by a seller, optionally filtered by status. */
+    PageResult<Product> findBySellerId(Long sellerId, ProductStatus status, PageQuery query);
 
-    /** Lists the products that are visible in the public catalog (status PUBLISHED). */
-    List<Product> findByStatus(ProductStatus status);
+    /** Lists the products visible in the public catalog, optionally filtered by seller. */
+    PageResult<Product> findByStatus(ProductStatus status, Long sellerId, PageQuery query);
 
     /** Lists every stored product. */
     List<Product> findAll();

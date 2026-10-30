@@ -6,6 +6,8 @@ import com.nexusmarket.application.error.NotFoundException;
 import com.nexusmarket.application.port.in.ManageCatalogUseCase;
 import com.nexusmarket.application.port.out.ProductRepository;
 import com.nexusmarket.application.port.out.SellerRepository;
+import com.nexusmarket.application.query.PageQuery;
+import com.nexusmarket.application.query.PageResult;
 import com.nexusmarket.application.support.Authorization;
 import com.nexusmarket.application.support.Validation;
 import com.nexusmarket.domain.catalog.Product;
@@ -73,16 +75,16 @@ public class CatalogService implements ManageCatalogUseCase {
     }
 
     @Override
-    public List<Product> findPublishedProducts(ActorContext actor) {
+    public PageResult<Product> findPublishedProducts(ActorContext actor, Long sellerId, PageQuery query) {
         Authorization.requireAuthenticated(actor);
-        return productRepository.findByStatus(ProductStatus.PUBLISHED);
+        return productRepository.findByStatus(ProductStatus.PUBLISHED, sellerId, query);
     }
 
     @Override
-    public List<Product> findOwnProducts(ActorContext actor) {
+    public PageResult<Product> findOwnProducts(ActorContext actor, ProductStatus status, PageQuery query) {
         Authorization.requireAnyRole(actor, Role.SELLER);
         Seller seller = requireSellerOfActor(actor);
-        return productRepository.findBySellerId(seller.getId());
+        return productRepository.findBySellerId(seller.getId(), status, query);
     }
 
     private Seller requireSellerOfActor(ActorContext actor) {

@@ -1,6 +1,8 @@
 package com.nexusmarket.application.service;
 
 import com.nexusmarket.application.context.ActorContext;
+import com.nexusmarket.application.query.PageQuery;
+import com.nexusmarket.application.query.PageResult;
 import com.nexusmarket.application.error.BusinessRuleException;
 import com.nexusmarket.application.error.NotFoundException;
 import com.nexusmarket.application.port.in.ManageInventoryUseCase;
@@ -85,8 +87,10 @@ public class InventoryService implements ManageInventoryUseCase {
     }
 
     @Override
-    public List<Inventory> findStockByProduct(ActorContext actor, Long productId) {
+    public PageResult<Inventory> findStockByProduct(ActorContext actor, Long productId, Long warehouseId,
+                                                    PageQuery query) {
         Authorization.requireAnyRole(actor, Role.SELLER, Role.LOGISTICS_OPERATOR);
-        return inventoryRepository.findByProductId(productId);
+        Validation.requireNotNull(productId, "productId");
+        return inventoryRepository.findByProductId(productId, warehouseId, query);
     }
 }

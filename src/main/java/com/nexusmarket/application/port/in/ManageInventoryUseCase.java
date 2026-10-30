@@ -1,6 +1,8 @@
 package com.nexusmarket.application.port.in;
 
 import com.nexusmarket.application.context.ActorContext;
+import com.nexusmarket.application.query.PageQuery;
+import com.nexusmarket.application.query.PageResult;
 import com.nexusmarket.domain.inventory.Inventory;
 import java.util.List;
 
@@ -57,9 +59,12 @@ public interface ManageInventoryUseCase {
     /**
      * Lists the stock of a product across the warehouses (distributed inventory).
      *
-     * @param actor     authenticated actor; SELLER or LOGISTICS_OPERATOR
-     * @param productId product identifier
-     * @return the inventory records of the product
+     * @param actor       authenticated actor; SELLER or LOGISTICS_OPERATOR
+     * @param productId   product identifier
+     * @param warehouseId optional warehouse filter; null means every warehouse
+     * @param query       pagination and sort
+     * @return one page of inventory records
      */
-    List<Inventory> findStockByProduct(ActorContext actor, Long productId);
+    PageResult<Inventory> findStockByProduct(ActorContext actor, Long productId, Long warehouseId,
+                                             PageQuery query);
 }

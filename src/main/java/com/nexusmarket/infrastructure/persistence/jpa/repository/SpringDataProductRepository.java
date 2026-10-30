@@ -2,7 +2,8 @@ package com.nexusmarket.infrastructure.persistence.jpa.repository;
 
 import com.nexusmarket.domain.catalog.ProductStatus;
 import com.nexusmarket.infrastructure.persistence.jpa.entity.ProductJpaEntity;
-import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 /**
@@ -12,17 +13,17 @@ import org.springframework.data.jpa.repository.JpaRepository;
  * {@code com.nexusmarket.application.port.out.ProductRepository} port. {@code save},
  * {@code findById} and {@code findAll} are inherited from {@link JpaRepository}.</p>
  *
- * <p>NOTE: {@code findByStatus} uses the shared enum {@link ProductStatus}, which is
- * the declared type of the entity attribute {@code ProductJpaEntity.status}; the
- * technical layer depends on the domain for this enum (infrastructure -&gt; domain).</p>
- *
- * <p>Fase 1.3.1 of docs/PLAN_API_WEB.md.</p>
+ * <p>Fase 1.3.1 y 2.9 (paginacion) de docs/PLAN_API_WEB.md.</p>
  */
 public interface SpringDataProductRepository extends JpaRepository<ProductJpaEntity, Long> {
 
     /** Mirrors ProductRepository.findBySellerId. */
-    List<ProductJpaEntity> findBySellerId(Long sellerId);
+    Page<ProductJpaEntity> findBySellerId(Long sellerId, Pageable pageable);
 
     /** Mirrors ProductRepository.findByStatus. */
-    List<ProductJpaEntity> findByStatus(ProductStatus status);
+    Page<ProductJpaEntity> findByStatus(ProductStatus status, Pageable pageable);
+
+    /** Filter combination used by both list endpoints. */
+    Page<ProductJpaEntity> findByStatusAndSellerId(ProductStatus status, Long sellerId,
+                                                   Pageable pageable);
 }

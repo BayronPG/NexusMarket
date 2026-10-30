@@ -1,7 +1,8 @@
 package com.nexusmarket.application.port.out;
 
+import com.nexusmarket.application.query.PageQuery;
+import com.nexusmarket.application.query.PageResult;
 import com.nexusmarket.domain.warehouse.Warehouse;
-import java.util.List;
 import java.util.Optional;
 
 /**
@@ -18,5 +19,5 @@ public interface WarehouseRepository {
     Optional<Warehouse> findById(Long id);
 
     /** Lists the warehouses owned by a seller. */
-    List<Warehouse> findBySellerId(Long sellerId);
+    PageResult<Warehouse> findBySellerId(Long sellerId, PageQuery query);
 }

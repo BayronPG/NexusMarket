@@ -13,7 +13,14 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import java.util.List;
+import com.nexusmarket.application.query.PageQuery;
+import com.nexusmarket.infrastructure.web.dto.PageResponse;
+import com.nexusmarket.infrastructure.web.SortWhitelist;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Pattern;
+import java.util.Set;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -29,7 +36,10 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/warehouses")
 @Tag(name = "Warehouses", description = "Bodegas de vendedor y del marketplace (OBJ-05)")
+@Validated
 public class WarehouseController {
+
+    private static final Set<String> SORT_FIELDS = Set.of("id", "type", "sellerId");
 
     private final ManageWarehousesUseCase manageWarehousesUseCase;
 
@@ -68,9 +78,17 @@ public class WarehouseController {
             @ApiResponse(responseCode = "200", description = "Bodegas del vendedor"),
             @ApiResponse(responseCode = "400", description = "Cabeceras o parametro invalidos"),
             @ApiResponse(responseCode = "403", description = "El rol no puede consultar bodegas")})
-    public List<WarehouseResponse> findBySeller(@Parameter(hidden = true) ActorContext actor,
-                                                @RequestParam Long sellerId) {
-        return WarehouseWebMapper.toResponses(
-                manageWarehousesUseCase.findWarehousesBySeller(actor, sellerId));
+    public PageResponse<WarehouseResponse> findBySeller(
+            @Parameter(hidden = true) ActorContext actor,
+            @RequestParam Long sellerId,
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size,
+            @RequestParam(defaultValue = "id,asc")
+            @Pattern(regexp = "[A-Za-z][A-Za-z0-9]*(,(?i:asc|desc))?") String sort) {
+        SortWhitelist.require(sort, SORT_FIELDS);
+        return PageResponse.from(
+                manageWarehousesUseCase.findWarehousesBySeller(actor, sellerId,
+                        PageQuery.of(page, size, sort)),
+                WarehouseWebMapper::toResponse);
     }
 }

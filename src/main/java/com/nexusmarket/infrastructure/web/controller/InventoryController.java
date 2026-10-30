@@ -14,7 +14,14 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import java.util.List;
+import com.nexusmarket.application.query.PageQuery;
+import com.nexusmarket.infrastructure.web.dto.PageResponse;
+import com.nexusmarket.infrastructure.web.SortWhitelist;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Pattern;
+import java.util.Set;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -30,7 +37,11 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/inventories")
 @Tag(name = "Inventories", description = "Inventario por producto y bodega (OBJ-06)")
+@Validated
 public class InventoryController {
+
+    private static final Set<String> SORT_FIELDS =
+            Set.of("id", "quantity", "damagedQuantity", "productId", "warehouseId");
 
     private final ManageInventoryUseCase manageInventoryUseCase;
 
@@ -89,9 +100,18 @@ public class InventoryController {
             @ApiResponse(responseCode = "200", description = "Stock del producto"),
             @ApiResponse(responseCode = "400", description = "Cabeceras o parametro invalidos"),
             @ApiResponse(responseCode = "403", description = "El rol no puede consultar el stock")})
-    public List<InventoryResponse> findByProduct(@Parameter(hidden = true) ActorContext actor,
-                                                 @RequestParam Long productId) {
-        return InventoryWebMapper.toResponses(
-                manageInventoryUseCase.findStockByProduct(actor, productId));
+    public PageResponse<InventoryResponse> findByProduct(
+            @Parameter(hidden = true) ActorContext actor,
+            @RequestParam Long productId,
+            @RequestParam(required = false) Long warehouseId,
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size,
+            @RequestParam(defaultValue = "id,asc")
+            @Pattern(regexp = "[A-Za-z][A-Za-z0-9]*(,(?i:asc|desc))?") String sort) {
+        SortWhitelist.require(sort, SORT_FIELDS);
+        return PageResponse.from(
+                manageInventoryUseCase.findStockByProduct(actor, productId, warehouseId,
+                        PageQuery.of(page, size, sort)),
+                InventoryWebMapper::toResponse);
     }
 }

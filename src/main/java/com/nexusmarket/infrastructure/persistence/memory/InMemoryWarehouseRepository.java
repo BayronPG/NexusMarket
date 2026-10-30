@@ -1,7 +1,11 @@
 package com.nexusmarket.infrastructure.persistence.memory;
 
 import com.nexusmarket.application.port.out.WarehouseRepository;
+import com.nexusmarket.application.query.PageQuery;
+import com.nexusmarket.application.query.PageResult;
 import com.nexusmarket.domain.warehouse.Warehouse;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -15,7 +19,7 @@ import org.springframework.stereotype.Repository;
  * TEMPORARY in-memory adapter for {@link WarehouseRepository}.
  *
  * <p>See {@link InMemoryUserRepository} for the reason of this temporary
- * persistence strategy (D-004 pending).</p>
+ * persistence strategy (D-004 pending). Pagination mirrors the JPA adapter.</p>
  */
 @Repository
 @Profile("memory")
@@ -39,9 +43,24 @@ public class InMemoryWarehouseRepository implements WarehouseRepository {
     }
 
     @Override
-    public List<Warehouse> findBySellerId(Long sellerId) {
-        return store.values().stream()
-                .filter(warehouse -> sellerId != null && sellerId.equals(warehouse.getSellerId()))
+    public PageResult<Warehouse> findBySellerId(Long sellerId, PageQuery query) {
+        List<Warehouse> filtered = store.values().stream()
+                .filter(warehouse -> sellerId == null || sellerId.equals(warehouse.getSellerId()))
+                .sorted(comparator(query))
                 .collect(Collectors.toList());
+        if (query.descending()) {
+            Collections.reverse(filtered);
+        }
+        return PageResult.slice(filtered, query);
+    }
+
+    private Comparator<Warehouse> comparator(PageQuery query) {
+        return switch (query.field()) {
+            case "id" -> Comparator.comparing(Warehouse::getId, Comparator.nullsLast(Long::compareTo));
+            case "type" -> Comparator.comparing(warehouse -> warehouse.getType().name());
+            case "sellerId" ->
+                    Comparator.comparing(Warehouse::getSellerId, Comparator.nullsLast(Long::compareTo));
+            default -> throw new IllegalArgumentException("sort field not allowed: " + query.field());
+        };
     }
 }

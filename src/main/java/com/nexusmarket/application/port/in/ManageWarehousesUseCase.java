@@ -1,6 +1,8 @@
 package com.nexusmarket.application.port.in;
 
 import com.nexusmarket.application.context.ActorContext;
+import com.nexusmarket.application.query.PageQuery;
+import com.nexusmarket.application.query.PageResult;
 import com.nexusmarket.domain.warehouse.Warehouse;
 import com.nexusmarket.domain.warehouse.WarehouseType;
 import java.util.List;
@@ -39,7 +41,8 @@ public interface ManageWarehousesUseCase {
      *
      * @param actor    authenticated actor holding the ADMINISTRATOR role
      * @param sellerId seller identifier
-     * @return the warehouses of the seller
+     * @param query    pagination and sort
+     * @return one page of warehouses
      */
-    List<Warehouse> findWarehousesBySeller(ActorContext actor, Long sellerId);
+    PageResult<Warehouse> findWarehousesBySeller(ActorContext actor, Long sellerId, PageQuery query);
 }
