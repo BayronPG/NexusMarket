@@ -1,0 +1,283 @@
+{
+  "info": {
+    "name": "NexusMarket",
+    "description": "Coleccion generada a partir de los 6 controladores REST reales (15 endpoints). Fase 2.7. Las cabeceras X-Actor-Id y X-Actor-Role son provisionales: no son autenticacion (la seguridad real es la Unidad 4).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "actorId", "value": "1" },
+    { "key": "actorRole", "value": "ADMINISTRATOR" }
+  ],
+  "item": [
+    {
+      "name": "Catalog",
+      "item": [
+        {
+          "name": "POST /api/products - registrar producto",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Actor-Id", "value": "{{actorId}}" },
+              { "key": "X-Actor-Role", "value": "{{actorRole}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"PHYSICAL\",\n  \"status\": \"PUBLISHED\",\n  \"variants\": [\"Talla M\", \"Talla L\"]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/api/products", "host": ["{{baseUrl}}"], "path": ["api", "products"] },
+            "description": "200 producto registrado | 400 cuerpo/cabeceras invalidas | 403 rol sin permiso | 404 vendedor inexistente | 409 regla de negocio"
+          }
+        },
+        {
+          "name": "PATCH /api/products/{productId}/status - cambiar estado",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Actor-Id", "value": "{{actorId}}" },
+              { "key": "X-Actor-Role", "value": "{{actorRole}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"SUSPENDED\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/api/products/1/status", "host": ["{{baseUrl}}"], "path": ["api", "products", "1", "status"] },
+            "description": "200 estado actualizado | 400 cuerpo invalido | 403 sin permiso | 404 producto inexistente | 409 transicion no permitida"
+          }
+        },
+        {
+          "name": "GET /api/products/published - productos publicados",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-Actor-Id", "value": "{{actorId}}" },
+              { "key": "X-Actor-Role", "value": "{{actorRole}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/products/published", "host": ["{{baseUrl}}"], "path": ["api", "products", "published"] },
+            "description": "200 lista de productos | 400 cabeceras invalidas | 403 rol sin permiso"
+          }
+        },
+        {
+          "name": "GET /api/products/mine - productos del vendedor",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-Actor-Id", "value": "{{actorId}}" },
+              { "key": "X-Actor-Role", "value": "{{actorRole}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/products/mine", "host": ["{{baseUrl}}"], "path": ["api", "products", "mine"] },
+            "description": "200 productos del vendedor | 400 cabeceras invalidas | 403 rol sin permiso | 404 vendedor inexistente"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Inventory",
+      "item": [
+        {
+          "name": "POST /api/inventories - registrar stock",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Actor-Id", "value": "{{actorId}}" },
+              { "key": "X-Actor-Role", "value": "{{actorRole}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": 1,\n  \"warehouseId\": 1,\n  \"quantity\": 10\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/api/inventories", "host": ["{{baseUrl}}"], "path": ["api", "inventories"] },
+            "description": "200 stock registrado | 400 cuerpo invalido | 403 sin permiso | 404 producto o bodega inexistentes | 409 inventario duplicado"
+          }
+        },
+        {
+          "name": "POST /api/inventories/reservations - reservar stock",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Actor-Id", "value": "{{actorId}}" },
+              { "key": "X-Actor-Role", "value": "{{actorRole}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": 1,\n  \"warehouseId\": 1,\n  \"amount\": 2\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/api/inventories/reservations", "host": ["{{baseUrl}}"], "path": ["api", "inventories", "reservations"] },
+            "description": "200 stock reservado | 400 cuerpo invalido | 403 sin permiso | 404 inventario inexistente | 409 stock insuficiente"
+          }
+        },
+        {
+          "name": "GET /api/inventories?productId= - stock por producto",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-Actor-Id", "value": "{{actorId}}" },
+              { "key": "X-Actor-Role", "value": "{{actorRole}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/inventories?productId=1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "inventories"],
+              "query": [{ "key": "productId", "value": "1" }]
+            },
+            "description": "200 stock del producto | 400 cabeceras o parametro invalidos | 403 rol sin permiso"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Order",
+      "item": [
+        {
+          "name": "POST /api/orders - crear pedido",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-Actor-Id", "value": "{{actorId}}" },
+              { "key": "X-Actor-Role", "value": "BUYER" }
+            ],
+            "body": { "mode": "raw", "raw": "" },
+            "url": { "raw": "{{baseUrl}}/api/orders", "host": ["{{baseUrl}}"], "path": ["api", "orders"] },
+            "description": "200 pedido creado en CART | 400 cabeceras invalidas | 403 solo BUYER | 404 comprador inexistente. TODO: confirmar si el pedido requiere cuerpo (hoy el controlador no lo recibe)."
+          }
+        },
+        {
+          "name": "PATCH /api/orders/{orderId}/status - cambiar estado",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Actor-Id", "value": "{{actorId}}" },
+              { "key": "X-Actor-Role", "value": "{{actorRole}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"PENDING_PAYMENT\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/api/orders/1/status", "host": ["{{baseUrl}}"], "path": ["api", "orders", "1", "status"] },
+            "description": "200 estado actualizado | 400 cuerpo invalido | 403 actor ajeno al pedido (RG-03) | 404 pedido inexistente | 409 transicion no permitida (RN-16)"
+          }
+        },
+        {
+          "name": "GET /api/orders/{orderId} - consultar pedido",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-Actor-Id", "value": "{{actorId}}" },
+              { "key": "X-Actor-Role", "value": "{{actorRole}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/orders/1", "host": ["{{baseUrl}}"], "path": ["api", "orders", "1"] },
+            "description": "200 pedido | 400 cabeceras invalidas | 403 rol sin permiso | 404 pedido inexistente"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Refund",
+      "item": [
+        {
+          "name": "POST /api/refunds - solicitar reembolso",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Actor-Id", "value": "{{actorId}}" },
+              { "key": "X-Actor-Role", "value": "BUYER" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"orderId\": 1\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/api/refunds", "host": ["{{baseUrl}}"], "path": ["api", "refunds"] },
+            "description": "200 reembolso registrado | 400 cuerpo invalido | 403 actor ajeno al pedido (RG-03) | 404 pedido o comprador inexistentes"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Seller",
+      "item": [
+        {
+          "name": "POST /api/sellers - registrar vendedor",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Actor-Id", "value": "{{actorId}}" },
+              { "key": "X-Actor-Role", "value": "ADMINISTRATOR" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Ana Torres\",\n  \"email\": \"ana@nexusmarket.com\",\n  \"identityDocument\": \"ID-001\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/api/sellers", "host": ["{{baseUrl}}"], "path": ["api", "sellers"] },
+            "description": "200 vendedor registrado | 400 cuerpo invalido | 403 solo ADMINISTRATOR (RN-04) | 409 email (RN-15) o documento (RN-14) duplicados"
+          }
+        },
+        {
+          "name": "GET /api/sellers/{sellerId} - consultar vendedor",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-Actor-Id", "value": "{{actorId}}" },
+              { "key": "X-Actor-Role", "value": "ADMINISTRATOR" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/sellers/1", "host": ["{{baseUrl}}"], "path": ["api", "sellers", "1"] },
+            "description": "200 vendedor | 400 cabeceras invalidas | 403 solo ADMINISTRATOR | 404 vendedor inexistente"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Warehouse",
+      "item": [
+        {
+          "name": "POST /api/warehouses - registrar bodega",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Actor-Id", "value": "{{actorId}}" },
+              { "key": "X-Actor-Role", "value": "ADMINISTRATOR" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"SELLER\",\n  \"sellerId\": 1\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/api/warehouses", "host": ["{{baseUrl}}"], "path": ["api", "warehouses"] },
+            "description": "200 bodega registrada | 400 sellerId incoherente con el tipo | 403 sin permiso | 404 vendedor inexistente"
+          }
+        },
+        {
+          "name": "GET /api/warehouses?sellerId= - bodegas del vendedor",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-Actor-Id", "value": "{{actorId}}" },
+              { "key": "X-Actor-Role", "value": "{{actorRole}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/warehouses?sellerId=1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "warehouses"],
+              "query": [{ "key": "sellerId", "value": "1" }]
+            },
+            "description": "200 bodegas | 400 cabeceras o parametro invalidos | 403 rol sin permiso"
+          }
+        }
+      ]
+    }
+  ]
+}
