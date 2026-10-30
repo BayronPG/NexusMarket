@@ -45,6 +45,14 @@ class WarehouseControllerTest {
         return warehouse;
     }
 
+    private Warehouse marketplaceWarehouse() {
+        Warehouse warehouse = new Warehouse();
+        warehouse.setId(5L);
+        warehouse.setType(WarehouseType.MARKETPLACE);
+        warehouse.setSellerId(null);
+        return warehouse;
+    }
+
     @Test
     void registerDelegatesToTheUseCaseAndReturnsTheDto() throws Exception {
         given(manageWarehousesUseCase.registerWarehouse(
@@ -84,6 +92,34 @@ class WarehouseControllerTest {
                         .header(ActorContextArgumentResolver.HEADER_ACTOR_ROLE, "ADMINISTRATOR")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"type\":\"SELLER\"}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void registerAcceptsAMarketplaceWarehouseWithoutSellerId() throws Exception {
+        given(manageWarehousesUseCase.registerWarehouse(
+                new ActorContext(1L, Role.ADMINISTRATOR),
+                new ManageWarehousesUseCase.RegisterCommand(WarehouseType.MARKETPLACE, null)))
+                .willReturn(marketplaceWarehouse());
+
+        mockMvc.perform(post("/api/warehouses")
+                        .header(ActorContextArgumentResolver.HEADER_ACTOR_ID, "1")
+                        .header(ActorContextArgumentResolver.HEADER_ACTOR_ROLE, "ADMINISTRATOR")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"type\":\"MARKETPLACE\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(5))
+                .andExpect(jsonPath("$.type").value("MARKETPLACE"))
+                .andExpect(jsonPath("$.sellerId").isEmpty());
+    }
+
+    @Test
+    void registerRejectsAMarketplaceWarehouseWithSellerId() throws Exception {
+        mockMvc.perform(post("/api/warehouses")
+                        .header(ActorContextArgumentResolver.HEADER_ACTOR_ID, "1")
+                        .header(ActorContextArgumentResolver.HEADER_ACTOR_ROLE, "ADMINISTRATOR")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"type\":\"MARKETPLACE\",\"sellerId\":4}"))
                 .andExpect(status().isBadRequest());
     }
 }

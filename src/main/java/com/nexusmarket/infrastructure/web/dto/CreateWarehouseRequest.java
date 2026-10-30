@@ -1,6 +1,7 @@
 package com.nexusmarket.infrastructure.web.dto;
 
 import com.nexusmarket.domain.warehouse.WarehouseType;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotNull;
 
 /**
@@ -10,10 +11,21 @@ import jakarta.validation.constraints.NotNull;
  * mirror the required fields already checked by
  * {@code com.nexusmarket.application.support.Validation}.</p>
  *
+ * <p>The conditional rule mirrors {@code WarehouseService}: a SELLER warehouse
+ * requires an owner, while a MARKETPLACE warehouse must not declare one.</p>
+ *
  * @param type     classification of the warehouse
- * @param sellerId owner seller
+ * @param sellerId owner seller; required for SELLER and null for MARKETPLACE
  */
 public record CreateWarehouseRequest(
         @NotNull WarehouseType type,
-        @NotNull Long sellerId) {
+        Long sellerId) {
+
+    @AssertTrue(message = "sellerId is required for a SELLER warehouse and must be null for a MARKETPLACE warehouse")
+    public boolean isSellerIdConsistentWithType() {
+        if (type == null) {
+            return true;
+        }
+        return type == WarehouseType.SELLER ? sellerId != null : sellerId == null;
+    }
 }
