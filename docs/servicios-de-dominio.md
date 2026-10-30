@@ -233,22 +233,30 @@ pedidos **no debe presentarse como terminado**.
 
 ---
 
-## 11. Incremento de persistencia (en curso, 2026-10-13)
+## 11. Incremento de persistencia y API Web (publicado en `origin/main`)
 
-Incremento posterior a esta evidencia, **aún no publicado** en `origin/main`:
+Incremento posterior a esta evidencia, **publicado** en `origin/main` (incremento `46eaef3`;
+sincronización documental `e7d2c1e`):
 
 | Elemento | Estado |
 |---|---|
-| Dependencias `spring-boot-starter-data-jpa` + `mysql-connector-j` (runtime) + `h2` (test) | Implementado (sin commitear) |
-| Configuración: **MySQL real** por variables de entorno; **H2 solo en el perfil `test`** | Implementado (sin commitear) |
-| **8 entidades JPA** separadas del dominio (`infrastructure/persistence/jpa/entity/`) | Implementado (sin commitear) |
-| **8 mappers** dominio ↔ JPA (`infrastructure/persistence/jpa/mapper/`) | Implementado (sin commitear) |
-| Adaptadores JPA que implementan los 8 puertos de salida | **Pendiente (Fase 1.3)** |
-| Borde REST (controllers, DTO, validación, errores, OpenAPI) | **Pendiente (Fase 2)** |
-| Asociaciones JPA, restricciones de BD y estrategia definitiva de esquema | **Decisión pendiente** |
+| Dependencias `spring-boot-starter-data-jpa` + `mysql-connector-j` (runtime) + `h2` (test) | Implementado |
+| Configuración: **MySQL real** por variables de entorno; **H2 solo en el perfil `test`** | Implementado |
+| **8 entidades JPA** separadas del dominio (`infrastructure/persistence/jpa/entity/`) | Implementado y probado |
+| **8 mappers** dominio ↔ JPA (`infrastructure/persistence/jpa/mapper/`) | Implementado y probado |
+| **8 repositorios Spring Data** y **8 adaptadores JPA** de los puertos de salida (`infrastructure/persistence/jpa/repository/` y `adapter/`) | Implementado y probado |
+| Esquema con Flyway (`V1__initial_schema.sql`) e `hibernate.ddl-auto=validate` | Implementado; verificación de integración en `PersistenceMysqlIntegrationTest` (tag `mysql`) |
+| Borde REST: **6 controladores, 15 endpoints**, DTO, mappers web y validación `@Valid` | Implementado y probado |
+| `ActorContext` temporal por cabeceras (`X-Actor-Id`, `X-Actor-Role`) | Implementado y probado (provisional; no es autenticación) |
+| Manejo global de errores (2.4) | Implementado y probado |
+| OpenAPI (2.6): metadatos (`OpenApiConfig`) y Swagger UI con `springdoc-openapi` 2.8.9 | Implementado (endpoints aún sin documentar) |
+| Colección Postman (2.7) y pruebas E2E (2.8) | **Pendiente** |
+| Transaccionalidad de escrituras múltiples (`SellerRegistrationService.registerSeller`) | Implementado y probado |
+| Asociaciones JPA y restricciones de BD | Columnas escalares `Long` (P-1); esquema versionado con Flyway |
 
 El **dominio no se modificó**: las entidades JPA son clases **separadas** y los mappers traducen en
-ambos sentidos. Plan completo: [PLAN_API_WEB.md](PLAN_API_WEB.md).
+ambos sentidos. Los adaptadores en memoria se conservan para el perfil `memory`. Plan completo:
+[PLAN_API_WEB.md](PLAN_API_WEB.md).
 
 ---
 

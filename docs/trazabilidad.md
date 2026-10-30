@@ -63,5 +63,7 @@ Formato: | ID | Fuente | Requisito | Componente | Evidencia | Prueba | Estado |
 | Validación de entrada (`@Valid` → 400) | DTO de entrada | `*ControllerTest` | Implementado y probado |
 | `ActorContext` temporal por cabeceras | `infrastructure/web/ActorContextArgumentResolver.java` | `ActorContextArgumentResolverTest` | Implementado y probado (provisional; no es autenticación) |
 | Manejo global de errores (`@RestControllerAdvice`) | `infrastructure/web/error/` | `GlobalExceptionHandlerTest` | Implementado y probado (400/403/404/409/500) |
-| OpenAPI, Postman, E2E | — | — | **Pendiente (Fases 2.6, 2.7, 2.8)** |
+| OpenAPI (2.6): metadatos y Swagger UI | `infrastructure/web/OpenApiConfig.java` | - | Implementado (endpoints sin documentar) |
+| Postman (2.7) y E2E (2.8) | - | - | **Pendiente** |
+| Transaccionalidad de escrituras múltiples | `application/service/SellerRegistrationService.java` | `SellerRegistrationTransactionTest` | Implementado y probado |
 | Asociaciones y restricciones de esquema | — | — | Relaciones como columnas `Long` (P-1); esquema versionado con Flyway |
