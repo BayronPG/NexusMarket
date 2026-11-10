@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "NexusMarket",
-    "description": "Coleccion generada a partir de los 6 controladores REST reales (18 endpoints). Fase 2.7 + pedidos con items. Autenticacion JWT: envie Authorization: Bearer {{jwt}}. El token se firma en HS256 con JWT_SECRET y usa los claims sub (id) y role. La aplicacion no emite tokens.",
+    "description": "Coleccion generada a partir de los 7 controladores REST reales (19 endpoints). Incluye login JWT y pedidos con items. Ejecute primero Authentication > POST /api/auth/login: el script de prueba guarda la variable {{jwt}}. La aplicacion no emite refresh tokens.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -27,6 +27,58 @@
     }
   ],
   "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "POST /api/auth/login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "if (body.accessToken) {",
+                  "  pm.collectionVariables.set('jwt', body.accessToken);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"buyer@nexusmarket.local\",\n  \"password\": \"password\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "200 accessToken/tokenType/expiresIn (guarda {{jwt}}) | 400 cuerpo invalido | 401 credenciales invalidas (mensaje generico)"
+          }
+        }
+      ]
+    },
     {
       "name": "Catalog",
       "item": [

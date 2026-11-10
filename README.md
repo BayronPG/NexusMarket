@@ -27,15 +27,18 @@ Incremento posterior a E2, **publicado** en `origin/main` (`46eaef3`, 2026-10-15
   bajo el perfil `memory`.
 - **Esquema con Flyway** (`V1`–`V3`) y `spring.jpa.hibernate.ddl-auto=validate`.
 - **Borde REST (Fases 2.1–2.4 y 2.5)**: 6 controladores sobre los 6 puertos de entrada
-  (**18 endpoints**), DTO y mappers web, validación `@Valid` (400), manejo global de errores con
+  (**19 endpoints**), DTO y mappers web, validación `@Valid` (400), manejo global de errores con
   respuesta uniforme y `ActorContext` resuelto desde el JWT autenticado.
+- **Login (2026-11-10)**: `POST /api/auth/login` con email y contraseña; BCrypt strength 12 y JWT
+  HS256 con expiración configurable. El registro público sigue fuera de alcance.
 - **Pedidos con ítems (2026-11-10)**: carrito con líneas (`OrderItem`), precio histórico,
   subtotales y total; inventario descontado de forma atómica al pagar (detalle en "Pedidos con ítems").
 - **Seguridad (Unidad 4)**: resource server JWT `stateless` (HS256, secreto externo, autoridad
   `ROLE_<role>`); 401 sin token o con token inválido, 403 cuando la regla de rol del caso de uso lo impide.
 - **OpenAPI (2.6)**: los 15 endpoints documentados con `@Tag`, `@Operation` y `@ApiResponse`, con el
   esquema `bearerAuth` como requisito global; `/v3/api-docs` y Swagger UI verificados con `OpenApiDocsTest`.
-- **Postman (2.7)**: `docs/postman/NexusMarket.postman_collection.json` (6 carpetas, 18 requests).
+- **Postman (2.7)**: `docs/postman/NexusMarket.postman_collection.json` (7 carpetas, 19 requests;
+  el login guarda `{{jwt}}`).
 - **Pruebas end-to-end (2.8)**: tres flujos reales (catálogo, pedidos y devoluciones) en `ApiFlowE2ETest`.
 - **Pendiente**: emisión de tokens y login (fuera de esta evidencia; ver "Seguridad").
 - **Asociaciones JPA**: siguen como columnas escalares `Long` (P-1); el esquema definitivo es Flyway.
@@ -141,11 +144,13 @@ duplican.
   de los 8 puertos de salida; los `InMemory*` quedan **solo para pruebas** bajo el perfil `memory`.
 - **Esquema**: lo crea **Flyway** (`V1`–`V3`; V3 agrega `products.price` y `order_items`); Hibernate solo valida
   (`spring.jpa.hibernate.ddl-auto=validate`).
-- **Borde REST (Fases 2.1–2.4 y 2.5)**: 6 controladores, 18 endpoints, DTO y mappers web, validación
+- **Borde REST (Fases 2.1–2.4 y 2.5)**: 7 controladores, 19 endpoints, DTO y mappers web, validación
   de entrada (`@Valid` → 400), manejo global de errores (`@RestControllerAdvice` → 400/401/403/404/409/500)
   y `ActorContext` resuelto desde los claims del JWT (Unidad 4).
-- **Evidencia 5**: 2.6 (OpenAPI de los 18 endpoints), 2.7 (colección Postman), 2.8 (pruebas E2E de
+- **Evidencia 5**: 2.6 (OpenAPI de los 19 endpoints), 2.7 (colección Postman), 2.8 (pruebas E2E de
   los tres flujos reales) y 2.9 (paginación de los cuatro listados) resueltas.
+- **Autenticación (2.11)**: login con email normalizado y contraseña BCrypt; JWT HS256 compatible con
+  el resource server. Sin registro público, refresh, logout, recuperación ni MFA.
 - **Pedidos con ítems (2.10)**: `POST /api/orders/{id}/items`, `PATCH`/`DELETE` de un ítem y detalle
   con `items` y `total`. Reglas: solo el comprador propietario, solo productos publicados con precio,
   cantidad positiva y acotada por el inventario, precio histórico inmutable y pago sin doble descuento.
@@ -153,12 +158,12 @@ duplican.
   `sort` (`campo` o `campo,asc|desc`); responden `content`, `page`, `size`, `totalElements` y
   `totalPages`. Filtros opcionales: `sellerId` y `status` en productos, `warehouseId` en inventario.
 - **Calidad**: JaCoCo mide en la fase `test` y `mvn verify` exige ≥ 80 % líneas y ≥ 65 % ramas
-  (actual: 88.1 % líneas y 72.5 % ramas).
+  (actual: 88.5 % líneas y 73.5 % ramas).
 - **Decisiones provisionales** (no definitivas): relaciones como columnas `Long` (P-1), conservar
   `@ElementCollection` (P-2), validaciones de negocio en la capa de aplicación (P-3) y precio del
   producto como atributo nuevo (**D-PRICE**, no descrito por la especificación; necesario para el
   precio histórico del pedido).
-- **Pruebas:** `mvn -B clean verify` → **252/252 verdes** (incluye `jacoco:check`); integración contra MySQL 8.0 → **10/10**.
+- **Pruebas:** `mvn -B clean verify` → **269/269 verdes** (incluye `jacoco:check`); integración contra MySQL 8.0 → **10/10**.
 - **Decisiones, supuestos y alcance real** del incremento: [docs/servicios-de-dominio.md](docs/servicios-de-dominio.md).
 - Preguntas abiertas del dominio (variantes, contenido del pedido, catálogo de estados,
   reportes): [docs/modelo-de-dominio.md](docs/modelo-de-dominio.md), sección 11.
@@ -189,6 +194,24 @@ duplican.
 - **Limitaciones**: no hay pasarela de pagos ni confirmación financiera externa, no hay reserva
   temporal de stock (se descuenta al pagar) y no hay edición de precio por variante.
 
+## Login y contraseñas (2026-11-10)
+
+- **Endpoint público**: `POST /api/auth/login` recibe `{ "email", "password" }` y responde
+  `{ "accessToken", "tokenType": "Bearer", "expiresIn" }`.
+- **Contraseñas**: solo se almacena el hash **BCrypt strength 12** (`users.password_hash`).
+  Nunca se guarda, registra ni devuelve la contraseña; el hash tampoco sale en JSON.
+- **Normalización**: el email se limpia con `trim` y se pasa a minúsculas; la búsqueda es
+  insensible a mayúsculas (`lower(email)`).
+- **Respuesta única**: correo inexistente, contraseña incorrecta, usuario bloqueado o usuario sin
+  contraseña producen el mismo **401** con `Invalid email or password`.
+- **JWT**: HS256 con el mismo `JWT_SECRET` del resource server; claims `sub`, `role`, `iat`, `exp`.
+  Expiración configurable con `JWT_EXPIRATION_SECONDS` (por defecto **900 s**).
+- **Migración V4**: `ALTER TABLE users ADD COLUMN password_hash VARCHAR(60)`. La columna es nula a
+  propósito: los usuarios existentes **no** reciben una contraseña compartida y no pueden entrar
+  hasta que un proceso de aprovisionamiento (administrativo o de demostración) les asigne un hash.
+- **Limitaciones**: no hay registro público, refresh tokens, logout, recuperación de contraseña,
+  verificación por correo, MFA ni OAuth social.
+
 ## Seguridad (Unidad 4)
 
 - **Resource Server JWT `stateless`**: sin login, sin HTTP Basic y sin sesión. Toda petición a
@@ -201,15 +224,16 @@ duplican.
 - **Autoridad**: el claim `role` se convierte en `ROLE_<role>` (por ejemplo `ROLE_SELLER`).
 - **ActorContext**: se construye desde el JWT; las cabeceras `X-Actor-Id` y `X-Actor-Role` fueron
   eliminadas.
-- **Rutas públicas**: `/v3/api-docs/**`, `/swagger-ui/**` y `/swagger-ui.html`. El resto requiere token.
+- **Rutas públicas**: `POST /api/auth/login`, `/v3/api-docs/**`, `/swagger-ui/**` y
+  `/swagger-ui.html`. El resto requiere token.
 - **Respuestas**: 401 si falta el token, es inválido, está expirado o sus claims no son válidos;
   403 cuando el rol no está permitido para el caso de uso (RG-03).
-- **Prueba manual**: generar un token HS256 en <https://jwt.io> con el mismo `JWT_SECRET` y los
-  claims indicados (por ejemplo `{"sub":"25","role":"BUYER","iat":...,"exp":...}`) y enviarlo como
-  `Authorization: Bearer <token>`.
-- **Limitaciones**: esta evidencia no incluye emisión de tokens, login, refresh ni rotación de
-  secreto. El secreto es simétrico y compartido, y la autorización por rol se aplica en los servicios
-  de aplicación, no con reglas de URL.
+- **Prueba manual**: usar `POST /api/auth/login` para obtener el token y enviarlo como
+  `Authorization: Bearer <token>`. Solo para usuarios sin contraseña aprovisionada se puede firmar un
+  token HS256 en <https://jwt.io> con el mismo `JWT_SECRET` (bootstrap).
+- **Limitaciones**: el login emite tokens, pero no hay refresh, logout ni rotación de secreto. El
+  secreto es simétrico y compartido, y la autorización por rol se aplica en los servicios de
+  aplicación, no con reglas de URL.
 
 ## Fuentes oficiales
 

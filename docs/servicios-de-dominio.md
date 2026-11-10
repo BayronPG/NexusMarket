@@ -129,6 +129,10 @@ Adaptadores **temporales** (en memoria): `InMemoryUserRepository`, `InMemorySell
 
 ## 5. Autenticación vs. autorización (estado real de RG-01)
 
+> **Actualización (2026-11-10):** la autenticación ya está implementada con
+> `POST /api/auth/login` (BCrypt strength 12) y JWT HS256 (migración V4). El texto
+> siguiente conserva el estado del incremento anterior como registro.
+
 | Concepto | Definición | Estado en este incremento |
 |---|---|---|
 | **Autenticación** | Verificar *quién* es el usuario (credenciales, sesión, token). | **NO implementada.** |
@@ -233,7 +237,7 @@ pedidos **no debe presentarse como terminado**.
 3. **Ítems del pedido, cantidades y precios**: **resuelto** el 2026-11-10 con decisión D-PRICE (precio del producto) y migración V3 (§6).
 4. **Variantes del producto**: naturaleza pendiente.
 5. **Persistencia**: elección de MySQL y/o MongoDB (decisión provisional D1/D2; evidencia de API Web).
-6. **Autenticación real** (RG-01): evidencia de seguridad posterior (§5).
+6. **Autenticación real** (RG-01): **resuelta** el 2026-11-10 con login BCrypt + JWT (V4); quedan fuera registro público, refresh y recuperación.
 
 ---
 
@@ -252,6 +256,7 @@ sincronización documental `e7d2c1e`):
 | Esquema con Flyway (`V1__initial_schema.sql`) e `hibernate.ddl-auto=validate` | Implementado; verificación de integración en `PersistenceMysqlIntegrationTest` (tag `mysql`) |
 | Borde REST: **6 controladores, 18 endpoints**, DTO, mappers web y validación `@Valid` | Implementado y probado |
 | Pedidos con ítems: `OrderItem`, precio histórico, total y descuento de inventario al pagar (V3, D-PRICE) | Implementado y probado (`OrderServiceTest`, E2E con JWT) |
+| Login con contraseña: `POST /api/auth/login`, BCrypt strength 12 y emisión JWT (V4) | Implementado y probado (`AuthenticationServiceTest`, E2E login → endpoint protegido) |
 | `ActorContext` desde JWT (resource server HS256, `Authorization: Bearer`) | Implementado y probado (`SecurityConfigTest` + tests MVC/E2E con `SecurityTestSupport`) |
 | Manejo global de errores (2.4) | Implementado y probado |
 | OpenAPI (2.6): 15 endpoints documentados y Swagger UI con `springdoc-openapi` 2.8.9 | Implementado y probado |

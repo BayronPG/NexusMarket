@@ -98,8 +98,9 @@ El token debe incluir `sub` (id `Long` positivo), `role` (valor exacto del enum:
 expirado o con claims inválidos la respuesta es **401**. Un rol válido pero no permitido para el caso
 de uso devuelve **403**. Las rutas `/v3/api-docs/**` y `/swagger-ui/**` son públicas.
 
-**No existe login ni emisión de tokens**: para la demo el token se firma localmente con el mismo
-secreto de la aplicación (§5.3).
+**Login**: `POST /api/auth/login` con `{ "email", "password" }` emite el token (BCrypt strength 12,
+expiración 900 s por defecto). Para usuarios de demostración sin contraseña aprovisionada, el script
+de §5.3 firma el token localmente con el mismo secreto.
 
 ### 5.2 Endpoints reales (15)
 
@@ -259,13 +260,13 @@ mvn -B verify
 Salida real (2026-11-10, tras la migración a JWT):
 
 ```text
-[INFO] Tests run: 252, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Tests run: 269, Failures: 0, Errors: 0, Skipped: 0
 [INFO] All coverage checks have been met.
 [INFO] BUILD SUCCESS
 ```
 
-- La suite por defecto ejecuta **252 pruebas**, incluye `jacoco:check` (≥ 80 % líneas, ≥ 65 % ramas)
-  y deja la cobertura en **88.1 % líneas y 72.5 % ramas**.
+- La suite por defecto ejecuta **269 pruebas**, incluye `jacoco:check` (≥ 80 % líneas, ≥ 65 % ramas)
+  y deja la cobertura en **88.5 % líneas y 73.5 % ramas**.
 - `PersistenceMysqlIntegrationTest` contiene **10 pruebas** con `@Tag("mysql")` y queda excluida por
   defecto (`pom.xml`), porque exige una instancia MySQL real.
 - Para ejecutarla:
@@ -276,9 +277,9 @@ mvn -B test -Dtest=PersistenceMysqlIntegrationTest -DexcludedTestTags=none
 
 ## 7. Limitaciones conocidas
 
-1. **No hay emisión de tokens ni login.** La API valida JWT HS256 con `JWT_SECRET`, pero no existe
-   endpoint de autenticación, refresh ni rotación de secreto; para la demo el token se firma localmente
-   (§5.3). El secreto es simétrico y compartido.
+1. **Login implementado, sin ciclo de vida de sesión.** `POST /api/auth/login` valida BCrypt y emite
+   JWT HS256, pero no hay refresh, logout, recuperación de contraseña ni rotación de secreto. Los
+   usuarios sin `password_hash` no pueden iniciar sesión hasta que se les aprovisione uno.
 2. **El pedido ya tiene líneas, cantidades, precio histórico y total** (`OrderItem`, migración V3).
    El precio se agregó como atributo del producto (**D-PRICE**) porque la especificación no lo define.
    No hay pasarela de pagos: `PAID` solo cambia el estado y descuenta inventario.
@@ -299,8 +300,8 @@ mvn -B test -Dtest=PersistenceMysqlIntegrationTest -DexcludedTestTags=none
 
 | Pregunta | Respuesta breve |
 |---|---|
-| ¿Cómo se autentica la API? | Resource server JWT `stateless` (HS256): `Authorization: Bearer <jwt>`; el `ActorContext` sale de los claims `sub` y `role`. Sin token o con token inválido → 401; rol no permitido → 403. |
-| ¿De dónde salen los tokens si no hay login? | No hay emisión de tokens en el proyecto (fuera de alcance). Para la demo se firman localmente con `JWT_SECRET`; en producción los emitiría el proveedor de identidad. |
+| ¿Cómo se autentica la API? | `POST /api/auth/login` valida email/contraseña (BCrypt strength 12) y emite un JWT HS256; el resource server lo valida y el `ActorContext` sale de `sub` y `role`. Sin token o inválido → 401; rol no permitido → 403. |
+| ¿Qué pasa con usuarios sin contraseña? | No pueden iniciar sesión; la migración V4 deja `password_hash` nulo y no se asigna una contraseña compartida. Un proceso administrativo debe aprovisionar el hash. |
 | ¿Por qué el dominio no tiene anotaciones JPA? | Para mantener el dominio independiente del framework. Las entidades JPA y los mappers viven en `infrastructure/persistence/jpa/`. |
 | ¿Por qué `Long` en lugar de `@ManyToOne`? | Decisión P-1: agregados separados y esquema versionado con Flyway. Las asociaciones definitivas son deuda declarada. |
 | ¿Dónde se cumplen las reglas del negocio? | En el dominio cuando dependen de una entidad (`Order.changeStatus`, `Inventory.reserve`) y en los servicios cuando dependen de estado externo (unicidad RN-14/15, existencia de referencias). |

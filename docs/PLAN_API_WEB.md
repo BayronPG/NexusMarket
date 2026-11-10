@@ -280,10 +280,11 @@ docs/ · README.md                          ← documentación de la evidencia
 | 2.7 | Colección Postman con `Authorization: Bearer` | ✅ Implementado |
 | 2.8 | Pruebas de integración end-to-end | ✅ Implementado (3 flujos) |
 | 2.10 | Pedidos con ítems: carrito, precio histórico, total e inventario | ✅ Implementado (2026-11-10) |
+| 2.11 | Login con contraseña BCrypt y emisión JWT | ✅ Implementado (2026-11-10) |
 | 3 | Cierre de la evidencia (documentación y trazabilidad) | 🔄 En curso |
 | 4 | Seguridad JWT `stateless` (Unidad 4, ver §14) | ✅ Implementado |
 
-**Pruebas:** `mvn -B verify` → **252/252 verdes** (incluye `jacoco:check`); integración contra MySQL
+**Pruebas:** `mvn -B verify` → **269/269 verdes** (incluye `jacoco:check`); integración contra MySQL
 8.0 → **10/10** (excluida del build por defecto mediante la etiqueta `mysql`).
 
 **Publicado:** `origin/main` en `46eaef3` (2026-10-15).
@@ -353,3 +354,21 @@ docs/ · README.md                          ← documentación de la evidencia
 - **Pruebas**: `OrderServiceTest`, `OrderControllerTest`, `JpaOrderItemRepositoryAdapterTest` y el
   flujo E2E con JWT cubren las reglas, la persistencia y la migración.
 - **Limitaciones**: sin pasarela de pagos, sin reserva temporal de stock y sin precio por variante.
+
+---
+
+## 16. Login con contraseña y emisión JWT (2026-11-10)
+
+- **Endpoint**: `POST /api/auth/login` (`email`, `password`) público; responde `accessToken`,
+  `tokenType` y `expiresIn` (900 s por defecto, configurable con `JWT_EXPIRATION_SECONDS`).
+- **Persistencia**: `V4__add_user_password_hash.sql` agrega `users.password_hash VARCHAR(60)`
+  (nullable). Los usuarios existentes no reciben contraseña compartida; un proceso de
+  aprovisionamiento debe asignarles un hash BCrypt.
+- **Dominio y puertos**: `PasswordHasher` (BCrypt strength 12), `TokenIssuer` (HS256 reutilizando
+  `JWT_SECRET`) y `AuthenticateUserUseCase`. El hash nunca sale de la capa de aplicación.
+- **Errores**: correo inexistente, contraseña incorrecta, usuario bloqueado o sin contraseña → 401
+  genérico; cuerpo inválido → 400; el hash no se serializa.
+- **Seguridad HTTP**: solo `POST /api/auth/login` es público además de OpenAPI/Swagger; el resto
+  sigue protegido. Sin sesión, CSRF, formLogin ni HTTP Basic.
+- **Limitaciones**: sin registro público, refresh, logout, recuperación, verificación por correo,
+  MFA ni OAuth social.
