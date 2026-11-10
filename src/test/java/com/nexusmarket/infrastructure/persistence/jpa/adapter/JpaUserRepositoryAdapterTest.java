@@ -34,6 +34,20 @@ class JpaUserRepositoryAdapterTest {
         springDataUserRepository.deleteAll();
     }
 
+    @Test
+    void persistsAndReadsThePasswordHash() {
+        User user = newUser();
+        user.setPasswordHash("$2a$12$fake-hash-for-persistence-test-only");
+
+        User saved = adapter.save(user);
+
+        assertThat(adapter.findById(saved.getId()))
+                .isPresent()
+                .get()
+                .extracting(User::getPasswordHash)
+                .isEqualTo("$2a$12$fake-hash-for-persistence-test-only");
+    }
+
     private User newUser() {
         User user = new User();
         user.setFullName("Ada Lovelace");

@@ -24,6 +24,7 @@ public final class UserJpaMapper {
         entity.setIdentityDocument(user.getIdentityDocument());
         entity.setRole(user.getRole());
         entity.setStatus(user.getStatus());
+        entity.setPasswordHash(user.getPasswordHash());
         return entity;
     }
 
@@ -38,6 +39,7 @@ public final class UserJpaMapper {
         user.setIdentityDocument(entity.getIdentityDocument());
         user.setRole(entity.getRole());
         user.setStatus(entity.getStatus());
+        user.setPasswordHash(entity.getPasswordHash());
         return user;
     }
 }

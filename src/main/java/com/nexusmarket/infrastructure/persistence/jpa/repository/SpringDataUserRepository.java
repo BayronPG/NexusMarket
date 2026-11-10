@@ -3,6 +3,8 @@ package com.nexusmarket.infrastructure.persistence.jpa.repository;
 import com.nexusmarket.infrastructure.persistence.jpa.entity.UserJpaEntity;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 /**
  * Technical Spring Data repository for {@link UserJpaEntity}.
@@ -21,4 +23,8 @@ public interface SpringDataUserRepository extends JpaRepository<UserJpaEntity, L
 
     /** Mirrors UserRepository.findByIdentityDocument (RN-14 uniqueness check). */
     Optional<UserJpaEntity> findByIdentityDocument(String identityDocument);
+
+    /** Mirrors UserRepository.findByEmailNormalized (case-insensitive login). */
+    @Query("select u from UserJpaEntity u where lower(u.email) = :email")
+    Optional<UserJpaEntity> findByEmailNormalized(@Param("email") String email);
 }

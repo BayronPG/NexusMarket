@@ -32,6 +32,7 @@ class OpenApiDocsTest {
                 .andExpect(jsonPath("$.info.title").value("NexusMarket API"))
                 .andExpect(jsonPath("$.paths['/api/products'].post").exists())
                 .andExpect(jsonPath("$.paths['/api/orders/{orderId}'].get").exists())
+                .andExpect(jsonPath("$.paths['/api/auth/login'].post").exists())
                 .andExpect(jsonPath("$.paths['/api/warehouses'].get").exists())
                 .andExpect(jsonPath("$.components.securitySchemes.bearerAuth.type").value("http"))
                 .andExpect(jsonPath("$.components.securitySchemes.bearerAuth.scheme").value("bearer"))

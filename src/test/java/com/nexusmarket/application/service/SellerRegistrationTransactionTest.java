@@ -86,6 +86,11 @@ class SellerRegistrationTransactionTest {
                 }
 
                 @Override
+                public Optional<User> findByEmailNormalized(String email) {
+                    return Optional.empty();
+                }
+
+                @Override
                 public Optional<User> findByIdentityDocument(String identityDocument) {
                     return Optional.empty();
                 }

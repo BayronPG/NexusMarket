@@ -48,6 +48,9 @@ public class UserJpaEntity {
     @Column(name = "status")
     private UserStatus status;
 
+    @Column(name = "password_hash", length = 60)
+    private String passwordHash;
+
     public Long getId() {
         return id;
     }
@@ -94,5 +97,13 @@ public class UserJpaEntity {
 
     public void setStatus(UserStatus status) {
         this.status = status;
+    }
+
+    public String getPasswordHash() {
+        return passwordHash;
+    }
+
+    public void setPasswordHash(String passwordHash) {
+        this.passwordHash = passwordHash;
     }
 }

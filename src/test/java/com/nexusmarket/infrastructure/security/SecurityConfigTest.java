@@ -11,6 +11,8 @@ import com.nimbusds.jose.jwk.OctetSequenceKey;
 import com.nimbusds.jose.jwk.source.ImmutableJWKSet;
 import com.nimbusds.jose.jwk.source.JWKSource;
 import com.nimbusds.jose.proc.SecurityContext;
+import com.nexusmarket.application.port.out.TokenIssuer;
+import com.nexusmarket.domain.user.Role;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import javax.crypto.spec.SecretKeySpec;
@@ -23,6 +25,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.JwsHeader;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtClaimsSet;
 import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
@@ -49,6 +52,12 @@ class SecurityConfigTest {
 
     @Autowired
     private JwtAuthenticationConverter jwtAuthenticationConverter;
+
+    @Autowired
+    private JwtDecoder jwtDecoder;
+
+    @Autowired
+    private TokenIssuer tokenIssuer;
 
     @Test
     void swaggerIsPublic() throws Exception {
@@ -132,9 +141,32 @@ class SecurityConfigTest {
     void shortSecretIsRejected() {
         SecurityConfig config = new SecurityConfig();
 
-        assertThatThrownBy(() -> config.jwtDecoder("too-short"))
+        assertThatThrownBy(() -> config.jwtSecretKey("too-short"))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("32");
+        assertThatThrownBy(() -> config.jwtSecretKey(""))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("32");
+    }
+
+    @Test
+    void issuedTokenIsAcceptedByTheCurrentDecoder() {
+        TokenIssuer.IssuedToken issued = tokenIssuer.issue(25L, Role.SELLER);
+        Jwt jwt = jwtDecoder.decode(issued.accessToken());
+
+        assertThat(jwt.getSubject()).isEqualTo("25");
+        assertThat(jwt.getClaimAsString("role")).isEqualTo("SELLER");
+        assertThat(jwt.getIssuedAt()).isNotNull();
+        assertThat(jwt.getExpiresAt()).isAfter(jwt.getIssuedAt());
+        assertThat(issued.expiresInSeconds()).isEqualTo(900);
+    }
+
+    @Test
+    void loginIsPublicButInvalidBodiesAreStillRejected() throws Exception {
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isBadRequest());
     }
 
     private static String token(String subject, String role, Instant expiresAt) {

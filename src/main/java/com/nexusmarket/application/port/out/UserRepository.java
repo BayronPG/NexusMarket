@@ -19,6 +19,12 @@ public interface UserRepository {
     /** Finds a user by email; used to enforce uniqueness (RN-15). */
     Optional<User> findByEmail(String email);
 
+    /**
+     * Finds a user by email ignoring case; used by login with a normalized
+     * (trim + lowercase) identifier.
+     */
+    Optional<User> findByEmailNormalized(String email);
+
     /** Finds a user by identity document; used to enforce uniqueness (RN-14). */
     Optional<User> findByIdentityDocument(String identityDocument);
 }

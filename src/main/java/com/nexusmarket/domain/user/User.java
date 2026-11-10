@@ -34,6 +34,12 @@ public class User {
     /** Operational status of the user. */
     private UserStatus status;
 
+    /**
+     * BCrypt hash of the password. Null means the user has no password yet and
+     * cannot authenticate. It is never exposed by the REST edge.
+     */
+    private String passwordHash;
+
     public User() {
     }
 
@@ -91,5 +97,13 @@ public class User {
 
     public void setStatus(UserStatus status) {
         this.status = status;
+    }
+
+    public String getPasswordHash() {
+        return passwordHash;
+    }
+
+    public void setPasswordHash(String passwordHash) {
+        this.passwordHash = passwordHash;
     }
 }

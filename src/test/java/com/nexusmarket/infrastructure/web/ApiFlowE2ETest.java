@@ -1,5 +1,6 @@
 package com.nexusmarket.infrastructure.web;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -15,6 +16,7 @@ import com.nexusmarket.domain.user.Role;
 import com.nexusmarket.domain.user.User;
 import com.nexusmarket.domain.user.UserStatus;
 import com.nexusmarket.infrastructure.web.controller.SecurityTestSupport;
+import com.nexusmarket.infrastructure.security.BCryptPasswordHasher;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -46,6 +48,44 @@ class ApiFlowE2ETest {
 
     @Autowired
     private BuyerRepository buyerRepository;
+
+    @Autowired
+    private BCryptPasswordHasher passwordHasher;
+
+    @Test
+    void loginIssuesATokenAcceptedByTheProtectedApi() throws Exception {
+        String unique = "login" + System.nanoTime();
+        String email = unique + "@nexusmarket.local";
+        createUserWithPassword(email, "password", Role.BUYER);
+
+        MvcResult login = mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"" + email + "\",\"password\":\"password\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.tokenType").value("Bearer"))
+                .andExpect(jsonPath("$.expiresIn").value(900))
+                .andExpect(jsonPath("$.accessToken").isNotEmpty())
+                .andReturn();
+
+        String token = bodyOf(login).get("accessToken").asText();
+        assertThat(login.getResponse().getContentAsString()).doesNotContain("passwordHash");
+
+        mockMvc.perform(get("/api/products/published")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"" + email + "\",\"password\":\"wrong\"}"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.message").value("Invalid email or password"));
+
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"nobody@nexusmarket.local\",\"password\":\"password\"}"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.message").value("Invalid email or password"));
+    }
 
     @Test
     void sellerWarehouseProductAndStockAreRegistered() throws Exception {
@@ -339,6 +379,17 @@ class ApiFlowE2ETest {
         buyer.setCommercialStatus("ACTIVE");
         buyerRepository.save(buyer);
         return saved.getId();
+    }
+
+    private void createUserWithPassword(String email, String password, Role role) {
+        User user = new User();
+        user.setFullName("Login Demo");
+        user.setEmail(email);
+        user.setIdentityDocument("DOC-" + email);
+        user.setRole(role);
+        user.setStatus(UserStatus.ACTIVE);
+        user.setPasswordHash(passwordHasher.hash(password));
+        userRepository.save(user);
     }
 
     private JsonNode bodyOf(MvcResult result) throws Exception {

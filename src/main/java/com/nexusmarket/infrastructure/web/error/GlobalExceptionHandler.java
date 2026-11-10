@@ -2,6 +2,7 @@ package com.nexusmarket.infrastructure.web.error;
 
 import com.nexusmarket.application.error.AuthorizationException;
 import com.nexusmarket.application.error.BusinessRuleException;
+import com.nexusmarket.application.error.InvalidCredentialsException;
 import com.nexusmarket.application.error.NotFoundException;
 import com.nexusmarket.application.error.ValidationException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -114,6 +115,20 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiErrorResponse> handleForbidden(
             AuthorizationException exception, HttpServletRequest request) {
         return build(HttpStatus.FORBIDDEN, exception.getMessage(), request);
+    }
+
+    /**
+     * Login failed. The message is generic so the caller cannot discover
+     * whether the email exists.
+     *
+     * @param exception the authentication exception
+     * @param request   current request
+     * @return 401 response
+     */
+    @ExceptionHandler(InvalidCredentialsException.class)
+    public ResponseEntity<ApiErrorResponse> handleInvalidCredentials(
+            InvalidCredentialsException exception, HttpServletRequest request) {
+        return build(HttpStatus.UNAUTHORIZED, exception.getMessage(), request);
     }
 
     /**

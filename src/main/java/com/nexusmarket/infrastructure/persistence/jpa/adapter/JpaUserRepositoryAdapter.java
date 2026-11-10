@@ -46,6 +46,11 @@ public class JpaUserRepositoryAdapter implements UserRepository {
     }
 
     @Override
+    public Optional<User> findByEmailNormalized(String email) {
+        return springDataUserRepository.findByEmailNormalized(email).map(UserJpaMapper::toDomain);
+    }
+
+    @Override
     public Optional<User> findByIdentityDocument(String identityDocument) {
         return springDataUserRepository.findByIdentityDocument(identityDocument)
                 .map(UserJpaMapper::toDomain);

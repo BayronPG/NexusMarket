@@ -45,6 +45,13 @@ public class InMemoryUserRepository implements UserRepository {
     }
 
     @Override
+    public Optional<User> findByEmailNormalized(String email) {
+        return store.values().stream()
+                .filter(user -> user.getEmail() != null && user.getEmail().equalsIgnoreCase(email))
+                .findFirst();
+    }
+
+    @Override
     public Optional<User> findByIdentityDocument(String identityDocument) {
         return store.values().stream()
                 .filter(user -> user.getIdentityDocument() != null
