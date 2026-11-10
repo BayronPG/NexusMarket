@@ -1,13 +1,12 @@
 {
   "info": {
     "name": "NexusMarket",
-    "description": "Coleccion generada a partir de los 6 controladores REST reales (15 endpoints). Fase 2.7. Las cabeceras X-Actor-Id y X-Actor-Role son provisionales: no son autenticacion (la seguridad real es la Unidad 4).",
+    "description": "Coleccion generada a partir de los 6 controladores REST reales (15 endpoints). Fase 2.7. Autenticacion JWT: envie Authorization: Bearer {{jwt}}. El token se firma en HS256 con JWT_SECRET y usa los claims sub (id) y role. La aplicacion no emite tokens.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
     { "key": "baseUrl", "value": "http://localhost:8080" },
-    { "key": "actorId", "value": "1" },
-    { "key": "actorRole", "value": "ADMINISTRATOR" }
+    { "key": "jwt", "value": "PEGUE_AQUI_EL_JWT" }
   ],
   "item": [
     {
@@ -19,8 +18,7 @@
             "method": "POST",
             "header": [
               { "key": "Content-Type", "value": "application/json" },
-              { "key": "X-Actor-Id", "value": "{{actorId}}" },
-              { "key": "X-Actor-Role", "value": "{{actorRole}}" }
+              { "key": "Authorization", "value": "Bearer {{jwt}}" }
             ],
             "body": {
               "mode": "raw",
@@ -37,8 +35,7 @@
             "method": "PATCH",
             "header": [
               { "key": "Content-Type", "value": "application/json" },
-              { "key": "X-Actor-Id", "value": "{{actorId}}" },
-              { "key": "X-Actor-Role", "value": "{{actorRole}}" }
+              { "key": "Authorization", "value": "Bearer {{jwt}}" }
             ],
             "body": {
               "mode": "raw",
@@ -54,8 +51,7 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "X-Actor-Id", "value": "{{actorId}}" },
-              { "key": "X-Actor-Role", "value": "{{actorRole}}" }
+              { "key": "Authorization", "value": "Bearer {{jwt}}" }
             ],
             "url": {
               "raw": "{{baseUrl}}/api/products/published?page=0&size=20&sort=id,asc",
@@ -76,8 +72,7 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "X-Actor-Id", "value": "{{actorId}}" },
-              { "key": "X-Actor-Role", "value": "{{actorRole}}" }
+              { "key": "Authorization", "value": "Bearer {{jwt}}" }
             ],
             "url": {
               "raw": "{{baseUrl}}/api/products/mine?page=0&size=20&sort=id,asc",
@@ -104,8 +99,7 @@
             "method": "POST",
             "header": [
               { "key": "Content-Type", "value": "application/json" },
-              { "key": "X-Actor-Id", "value": "{{actorId}}" },
-              { "key": "X-Actor-Role", "value": "{{actorRole}}" }
+              { "key": "Authorization", "value": "Bearer {{jwt}}" }
             ],
             "body": {
               "mode": "raw",
@@ -122,8 +116,7 @@
             "method": "POST",
             "header": [
               { "key": "Content-Type", "value": "application/json" },
-              { "key": "X-Actor-Id", "value": "{{actorId}}" },
-              { "key": "X-Actor-Role", "value": "{{actorRole}}" }
+              { "key": "Authorization", "value": "Bearer {{jwt}}" }
             ],
             "body": {
               "mode": "raw",
@@ -139,8 +132,7 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "X-Actor-Id", "value": "{{actorId}}" },
-              { "key": "X-Actor-Role", "value": "{{actorRole}}" }
+              { "key": "Authorization", "value": "Bearer {{jwt}}" }
             ],
             "url": {
               "raw": "{{baseUrl}}/api/inventories?productId=1&page=0&size=20&sort=id,asc",
@@ -167,8 +159,7 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "X-Actor-Id", "value": "{{actorId}}" },
-              { "key": "X-Actor-Role", "value": "BUYER" }
+              { "key": "Authorization", "value": "Bearer {{jwt}}" }
             ],
             "body": { "mode": "raw", "raw": "" },
             "url": { "raw": "{{baseUrl}}/api/orders", "host": ["{{baseUrl}}"], "path": ["api", "orders"] },
@@ -181,8 +172,7 @@
             "method": "PATCH",
             "header": [
               { "key": "Content-Type", "value": "application/json" },
-              { "key": "X-Actor-Id", "value": "{{actorId}}" },
-              { "key": "X-Actor-Role", "value": "{{actorRole}}" }
+              { "key": "Authorization", "value": "Bearer {{jwt}}" }
             ],
             "body": {
               "mode": "raw",
@@ -198,8 +188,7 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "X-Actor-Id", "value": "{{actorId}}" },
-              { "key": "X-Actor-Role", "value": "{{actorRole}}" }
+              { "key": "Authorization", "value": "Bearer {{jwt}}" }
             ],
             "url": { "raw": "{{baseUrl}}/api/orders/1", "host": ["{{baseUrl}}"], "path": ["api", "orders", "1"] },
             "description": "200 pedido | 400 cabeceras invalidas | 403 rol sin permiso | 404 pedido inexistente"
@@ -216,8 +205,7 @@
             "method": "POST",
             "header": [
               { "key": "Content-Type", "value": "application/json" },
-              { "key": "X-Actor-Id", "value": "{{actorId}}" },
-              { "key": "X-Actor-Role", "value": "BUYER" }
+              { "key": "Authorization", "value": "Bearer {{jwt}}" }
             ],
             "body": {
               "mode": "raw",
@@ -239,8 +227,7 @@
             "method": "POST",
             "header": [
               { "key": "Content-Type", "value": "application/json" },
-              { "key": "X-Actor-Id", "value": "{{actorId}}" },
-              { "key": "X-Actor-Role", "value": "ADMINISTRATOR" }
+              { "key": "Authorization", "value": "Bearer {{jwt}}" }
             ],
             "body": {
               "mode": "raw",
@@ -256,8 +243,7 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "X-Actor-Id", "value": "{{actorId}}" },
-              { "key": "X-Actor-Role", "value": "ADMINISTRATOR" }
+              { "key": "Authorization", "value": "Bearer {{jwt}}" }
             ],
             "url": { "raw": "{{baseUrl}}/api/sellers/1", "host": ["{{baseUrl}}"], "path": ["api", "sellers", "1"] },
             "description": "200 vendedor | 400 cabeceras invalidas | 403 solo ADMINISTRATOR | 404 vendedor inexistente"
@@ -274,8 +260,7 @@
             "method": "POST",
             "header": [
               { "key": "Content-Type", "value": "application/json" },
-              { "key": "X-Actor-Id", "value": "{{actorId}}" },
-              { "key": "X-Actor-Role", "value": "ADMINISTRATOR" }
+              { "key": "Authorization", "value": "Bearer {{jwt}}" }
             ],
             "body": {
               "mode": "raw",
@@ -291,8 +276,7 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "X-Actor-Id", "value": "{{actorId}}" },
-              { "key": "X-Actor-Role", "value": "{{actorRole}}" }
+              { "key": "Authorization", "value": "Bearer {{jwt}}" }
             ],
             "url": {
               "raw": "{{baseUrl}}/api/warehouses?sellerId=1&page=0&size=20&sort=id,asc",

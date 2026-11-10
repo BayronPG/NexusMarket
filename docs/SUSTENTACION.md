@@ -84,18 +84,22 @@ porque **no existe endpoint para registrar compradores** (§5.6).
 
 ## 5. Secuencia de demo REST verificada
 
-### 5.1 Cabeceras obligatorias
+### 5.1 Autenticación obligatoria (JWT)
 
-Todas las peticiones a `/api/**` requieren estas dos cabeceras; el `ActorContext` se construye a
-partir de ellas:
+Todas las peticiones a `/api/**` requieren un token JWT válido en la cabecera `Authorization`; el
+`ActorContext` se construye a partir de sus claims:
 
 | Cabecera | Valor | Ejemplo |
 |---|---|---|
-| `X-Actor-Id` | identificador del usuario que ejecuta la operación | `1`, `2` |
-| `X-Actor-Role` | rol único del usuario (enum `Role`) | `ADMINISTRATOR`, `SELLER`, `BUYER`, `LOGISTICS_OPERATOR`, `SUPERVISOR` |
+| `Authorization` | `Bearer <jwt>` firmado en HS256 con `JWT_SECRET` | `Bearer eyJhbGciOiJIUzI1NiJ9...` |
 
-Esto **no es autenticación**: el llamador declara su identidad y su rol. Si falta una cabecera o el rol
-no existe, la respuesta es **400** con el cuerpo uniforme de error de la Fase 2.4.
+El token debe incluir `sub` (id `Long` positivo), `role` (valor exacto del enum: `ADMINISTRATOR`,
+`SELLER`, `BUYER`, `LOGISTICS_OPERATOR`, `SUPERVISOR`) e `iat`/`exp`. Sin token, con firma inválida,
+expirado o con claims inválidos la respuesta es **401**. Un rol válido pero no permitido para el caso
+de uso devuelve **403**. Las rutas `/v3/api-docs/**` y `/swagger-ui/**` son públicas.
+
+**No existe login ni emisión de tokens**: para la demo el token se firma localmente con el mismo
+secreto de la aplicación (§5.3).
 
 ### 5.2 Endpoints reales (15)
 
@@ -134,8 +138,26 @@ vacía o con un sufijo nuevo (el sufijo evita choques con correos y documentos y
 
 ```powershell
 $base = "http://localhost:8080"
-$admin = @{ "X-Actor-Id" = "1"; "X-Actor-Role" = "ADMINISTRATOR" }
 $suffix = Get-Date -Format "yyyyMMddHHmmss"
+
+# Token HS256 firmado localmente (no hay emisión de tokens en la aplicación).
+$secret = $env:JWT_SECRET
+if (-not $secret -or $secret.Length -lt 32) { throw "Defina JWT_SECRET (>=32 bytes) antes de la demo" }
+
+function New-Token([string]$sub, [string]$role) {
+    function B64Url([string]$text) {
+        [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($text)).TrimEnd('=').Replace('+','-').Replace('/','_')
+    }
+    $now = [DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
+    $header = B64Url '{"alg":"HS256","typ":"JWT"}'
+    $payload = B64Url (@{ sub = $sub; role = $role; iat = $now; exp = $now + 3600 } | ConvertTo-Json -Compress)
+    $data = "$header.$payload"
+    $hmac = [System.Security.Cryptography.HMACSHA256]::new([Text.Encoding]::UTF8.GetBytes($secret))
+    $sig = [Convert]::ToBase64String($hmac.ComputeHash([Text.Encoding]::UTF8.GetBytes($data))).TrimEnd('=').Replace('+','-').Replace('/','_')
+    "$data.$sig"
+}
+
+$admin = @{ Authorization = "Bearer $(New-Token '1' 'ADMINISTRATOR')" }
 
 # 1. Registrar vendedor (ADMINISTRATOR). Devuelve id y userId.
 $seller = Invoke-RestMethod -Method Post -Uri "$base/api/sellers" -Headers $admin -ContentType "application/json" -Body (@{
@@ -144,7 +166,7 @@ $seller = Invoke-RestMethod -Method Post -Uri "$base/api/sellers" -Headers $admi
     identityDocument = "CC-$suffix"
 } | ConvertTo-Json)
 
-$sellerHeaders = @{ "X-Actor-Id" = "$($seller.userId)"; "X-Actor-Role" = "SELLER" }
+$sellerHeaders = @{ Authorization = "Bearer $(New-Token "$($seller.userId)" 'SELLER')" }
 
 # 2. Bodega del vendedor y bodega del Marketplace.
 $warehouse = Invoke-RestMethod -Method Post -Uri "$base/api/warehouses" -Headers $admin -ContentType "application/json" -Body (@{
@@ -184,7 +206,7 @@ $sqlBuyer = "INSERT INTO users (full_name,email,identity_document,role,status) V
 & mysql @mysqlBase -e $sqlBuyer nexusmarket
 
 $buyerUserId = (& mysql @mysqlBase -N -B -e "SELECT id FROM users WHERE email='$buyerEmail';" nexusmarket).Trim()
-$buyerHeaders = @{ "X-Actor-Id" = "$buyerUserId"; "X-Actor-Role" = "BUYER" }
+$buyerHeaders = @{ Authorization = "Bearer $(New-Token "$buyerUserId" 'BUYER')" }
 
 # 7. Crear pedido y avanzar el ciclo hasta PAID.
 $order = Invoke-RestMethod -Method Post -Uri "$base/api/orders" -Headers $buyerHeaders
@@ -208,7 +230,7 @@ Invoke-RestMethod -Method Get -Uri "$base/api/warehouses?sellerId=$($seller.id)"
 | 3 | Producto con `status = PUBLISHED` y `sellerId` del vendedor. |
 | 4 | Inventario con `quantity = 10` y, tras reservar, `quantity = 7`. |
 | 5 | Producto con `status = SUSPENDED`; deja de aparecer en `/published`. |
-| 6 | Usuario `BUYER` y fila en `buyers`; `$buyerUserId` es el `X-Actor-Id` del comprador. |
+| 6 | Usuario `BUYER` y fila en `buyers`; `$buyerUserId` es el `sub` del token del comprador. |
 | 7 | Pedido en `CART`, luego `PENDING_PAYMENT` y `PAID`. |
 | 8 | Reembolso con `orderId` del pedido y `id` generado. |
 
@@ -230,17 +252,19 @@ Invoke-RestMethod -Method Get -Uri "$base/api/warehouses?sellerId=$($seller.id)"
 Comando ejecutado:
 
 ```powershell
-mvn -B test
+mvn -B verify
 ```
 
-Salida real (2026-10-27, tras la Fase 2.4):
+Salida real (2026-11-10, tras la migración a JWT):
 
 ```text
-[INFO] Tests run: 164, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Tests run: 224, Failures: 0, Errors: 0, Skipped: 0
+[INFO] All coverage checks have been met.
 [INFO] BUILD SUCCESS
 ```
 
-- La suite por defecto ejecuta **164 pruebas** (155 previas + 9 de `GlobalExceptionHandlerTest`).
+- La suite por defecto ejecuta **224 pruebas**, incluye `jacoco:check` (≥ 80 % líneas, ≥ 65 % ramas)
+  y deja la cobertura en **86.5 % líneas y 71.5 % ramas**.
 - `PersistenceMysqlIntegrationTest` contiene **10 pruebas** con `@Tag("mysql")` y queda excluida por
   defecto (`pom.xml`), porque exige una instancia MySQL real.
 - Para ejecutarla:
@@ -251,20 +275,21 @@ mvn -B test -Dtest=PersistenceMysqlIntegrationTest -DexcludedTestTags=none
 
 ## 7. Limitaciones conocidas
 
-1. **No hay autenticación real.** `ActorContext` se construye desde `X-Actor-Id` y `X-Actor-Role`; el
-   llamador puede declarar cualquier identidad o rol. La seguridad corresponde a la Unidad 4.
+1. **No hay emisión de tokens ni login.** La API valida JWT HS256 con `JWT_SECRET`, pero no existe
+   endpoint de autenticación, refresh ni rotación de secreto; para la demo el token se firma localmente
+   (§5.3). El secreto es simétrico y compartido.
 2. **El pedido no tiene líneas, cantidades ni total.** `Order` solo guarda `buyerId` y `status`; el
    `Cart` existe en el dominio pero no está conectado al flujo REST.
 3. **No hay endpoint para registrar compradores ni administradores.** La demo crea el comprador por
-   SQL. El administrador se simula con una cabecera, sin fila en `users`.
+   SQL. El administrador se simula con un token de rol `ADMINISTRATOR`, sin fila en `users`.
 4. **Asociaciones como columnas `Long` (P-1).** No hay claves foráneas ni asociaciones JPA; el
    esquema definitivo lo gobierna Flyway. `users.email` e `users.identity_document` no tienen
    restricción `UNIQUE` en la base: la unicidad RN-14/RN-15 se valida solo en el servicio.
 5. **MySQL local es 5.7.24, no 8.0.** El arranque y las pruebas HTTP contra MySQL real funcionaron,
    pero Hibernate advierte que 5.7 ya no es soportado (mínimo 8.0). La suite `mysql` sigue excluida
    del build por defecto.
-6. **Sin OpenAPI, colección Postman, pruebas E2E, paginación, versionado de API, CI ni
-   Testcontainers.** Son tareas pendientes/fuera de alcance de esta preparación.
+6. **Sin versionado de API, CI ni Testcontainers.** OpenAPI, colección Postman, pruebas E2E y
+   paginación ya están implementados; quedan como deuda el versionado, la CI y los contenedores.
 7. **Conteo histórico en `docs/servicios-de-dominio.md` §9.** Allí figura el corte de la Evidencia 2
    (67 pruebas al 2026-10-13). El conteo vigente es el de la §6 de este documento.
 
@@ -272,15 +297,15 @@ mvn -B test -Dtest=PersistenceMysqlIntegrationTest -DexcludedTestTags=none
 
 | Pregunta | Respuesta breve |
 |---|---|
-| ¿Por qué no hay Spring Security? | La seguridad es la Unidad 4. En esta evidencia `RG-01` se asume con un `ActorContext` temporal y documentado (D-019); no se afirma que sea autenticación real. |
-| ¿Por qué `X-Actor-Id` y `X-Actor-Role`? | Permiten demostrar autorización por rol sin ampliar el alcance. Son provisionales y se reemplazan por el usuario autenticado en la evidencia de seguridad. |
+| ¿Cómo se autentica la API? | Resource server JWT `stateless` (HS256): `Authorization: Bearer <jwt>`; el `ActorContext` sale de los claims `sub` y `role`. Sin token o con token inválido → 401; rol no permitido → 403. |
+| ¿De dónde salen los tokens si no hay login? | No hay emisión de tokens en el proyecto (fuera de alcance). Para la demo se firman localmente con `JWT_SECRET`; en producción los emitiría el proveedor de identidad. |
 | ¿Por qué el dominio no tiene anotaciones JPA? | Para mantener el dominio independiente del framework. Las entidades JPA y los mappers viven en `infrastructure/persistence/jpa/`. |
 | ¿Por qué `Long` en lugar de `@ManyToOne`? | Decisión P-1: agregados separados y esquema versionado con Flyway. Las asociaciones definitivas son deuda declarada. |
 | ¿Dónde se cumplen las reglas del negocio? | En el dominio cuando dependen de una entidad (`Order.changeStatus`, `Inventory.reserve`) y en los servicios cuando dependen de estado externo (unicidad RN-14/15, existencia de referencias). |
 | ¿Por qué H2 si la base real es MySQL? | H2 se usa **solo** en el perfil `test`. La configuración real es MySQL por variables de entorno; la suite MySQL se ejecuta aparte con `-DexcludedTestTags=none`. |
 | ¿El sistema ya gestiona pedidos completos? | No. `Order` no tiene ítems ni total; está declarado como pendiente. La demo muestra el ciclo de estados, no una compra con productos. |
 | ¿Por qué un POST devuelve 200 y no 201? | Es un ajuste de semántica HTTP pendiente; no forma parte de las tareas de esta preparación. |
-| ¿Qué falta para cerrar la Evidencia 5? | OpenAPI (2.6), colección Postman (2.7) y pruebas E2E (2.8), además de la validación contra MySQL real. |
+| ¿Qué falta para cerrar la Evidencia 5? | Nada del alcance 2.1–2.9: todo está implementado y verificado. Quedan como deuda declarada el versionado de API, la CI y la emisión de tokens. |
 | ¿La bodega Marketplace puede crearse sin vendedor? | Sí. `CreateWarehouseRequest` valida condicionalmente: `SELLER` exige `sellerId`; `MARKETPLACE` exige que sea nulo. Hay pruebas para ambos casos. |
 
 ## 9. Alcance de la verificación de este documento

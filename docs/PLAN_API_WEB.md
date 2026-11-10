@@ -7,7 +7,8 @@
 > 2026-10-15: Fases **1.1–1.7** y **2.1, 2.2, 2.3 y 2.5**, publicadas en `origin/main`. Ver §12.
 >
 > **Alcance:** Unidad 2 (persistencia JPA/Hibernate) + Evidencia 5 — API Web funcional (20 %).
-> **Fuera de este plan:** seguridad (Unidad 4).
+> **Fuera del alcance de la Evidencia 5:** seguridad (Unidad 4). Implementada el 2026-11-05 con
+> autorización del estudiante; ver §14.
 
 ---
 
@@ -114,6 +115,9 @@ Reglas aplicables (CODING_RULES.md) y cómo las cumple la propuesta:
 ---
 
 ## 5. `ActorContext` temporal (sin seguridad real)
+
+> **Actualización (2026-11-05):** esta solución temporal fue reemplazada por un resource server JWT
+> (§14). El texto siguiente se conserva como registro de la decisión original.
 
 Como **no** se implementa Spring Security en esta evidencia:
 
@@ -271,14 +275,15 @@ docs/ · README.md                          ← documentación de la evidencia
 | 2.2 | DTO de entrada/salida + mappers web | ✅ Implementado |
 | 2.3 | Validación de entrada (`@Valid`, respuestas 400) | ✅ Implementado |
 | 2.4 | Manejo global de errores | ✅ Implementado |
-| 2.5 | Resolución temporal del `ActorContext` (cabeceras HTTP) | ✅ Implementado |
-| 2.6 | OpenAPI / Swagger UI | ⏳ Pendiente |
-| 2.7 | Colección Postman/Bruno | ⏳ Pendiente |
-| 2.8 | Pruebas de integración end-to-end | ⏳ Pendiente |
+| 2.5 | `ActorContext` desde el JWT (sustituye las cabeceras temporales) | ✅ Implementado (Unidad 4) |
+| 2.6 | OpenAPI / Swagger UI con esquema `bearerAuth` | ✅ Implementado |
+| 2.7 | Colección Postman con `Authorization: Bearer` | ✅ Implementado |
+| 2.8 | Pruebas de integración end-to-end | ✅ Implementado (3 flujos) |
 | 3 | Cierre de la evidencia (documentación y trazabilidad) | 🔄 En curso |
+| 4 | Seguridad JWT `stateless` (Unidad 4, ver §14) | ✅ Implementado |
 
-**Pruebas:** `mvn -B clean test` → **164/164 verdes**; integración contra MySQL 8.0 → **10/10**
-(excluida del build por defecto mediante la etiqueta `mysql`).
+**Pruebas:** `mvn -B verify` → **224/224 verdes** (incluye `jacoco:check`); integración contra MySQL
+8.0 → **10/10** (excluida del build por defecto mediante la etiqueta `mysql`).
 
 **Publicado:** `origin/main` en `46eaef3` (2026-10-15).
 
@@ -296,3 +301,28 @@ docs/ · README.md                          ← documentación de la evidencia
 | **P-3** | **Mantener las validaciones en la capa de aplicación** (RN-14/RN-15); **no** añadir restricciones nuevas de base de datos. | Es donde ya se validan; añadir `unique`/`nullable` sería una decisión no respaldada por la fuente. |
 
 **Sigue pendiente (no resuelto):** la estrategia definitiva de esquema (`ddl-auto` vs. Flyway) — Fase 1.5.
+
+---
+
+## 14. Seguridad JWT (Unidad 4, 2026-11-05)
+
+> Añadida con autorización explícita del estudiante. No forma parte del alcance original de la
+> Evidencia 5 y no modifica casos de uso, reglas de negocio ni esquema de base de datos.
+
+- **Modelo**: `spring-boot-starter-oauth2-resource-server` como resource server JWT `stateless`.
+  Sin login, sin HTTP Basic, sin sesión y sin formulario.
+- **Algoritmo**: HS256 con secreto simétrico leído de `JWT_SECRET` (mínimo 32 bytes UTF-8). La
+  aplicación falla al arrancar si el secreto falta o es más corto.
+- **Claims**: `sub` (id `Long` positivo como String), `role` (valor exacto del enum `Role`) e
+  `iat`/`exp` estándar.
+- **Autoridad**: `role` → `ROLE_<role>`; un valor desconocido se rechaza al validar el token (401).
+- **`ActorContext`**: `ActorContextArgumentResolver` lo construye desde el `Jwt` autenticado. Ya no
+  existen `X-Actor-Id` ni `X-Actor-Role`.
+- **Rutas públicas**: `/v3/api-docs/**`, `/swagger-ui/**`, `/swagger-ui.html`.
+- **Errores**: 401 (token ausente, inválido, expirado o claims inválidos) y 403 (rol no permitido por
+  el caso de uso, RG-03). `ResponseStatusException` se traduce con un handler explícito.
+- **Secretos**: ningún secreto real en Git. `application-test.properties` y
+  `application-mysql.properties` contienen un valor **falso** identificado como solo de pruebas.
+- **Limitaciones**: no hay emisión de tokens, login, refresh ni rotación de secreto; el secreto es
+  simétrico; la autorización por rol se aplica en la capa de aplicación.
+- **Pruebas**: `SecurityConfigTest` (11 casos), más `SecurityTestSupport` en los tests MVC y E2E.

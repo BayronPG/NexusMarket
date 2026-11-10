@@ -247,7 +247,7 @@ sincronización documental `e7d2c1e`):
 | **8 repositorios Spring Data** y **8 adaptadores JPA** de los puertos de salida (`infrastructure/persistence/jpa/repository/` y `adapter/`) | Implementado y probado |
 | Esquema con Flyway (`V1__initial_schema.sql`) e `hibernate.ddl-auto=validate` | Implementado; verificación de integración en `PersistenceMysqlIntegrationTest` (tag `mysql`) |
 | Borde REST: **6 controladores, 15 endpoints**, DTO, mappers web y validación `@Valid` | Implementado y probado |
-| `ActorContext` temporal por cabeceras (`X-Actor-Id`, `X-Actor-Role`) | Implementado y probado (provisional; no es autenticación) |
+| `ActorContext` desde JWT (resource server HS256, `Authorization: Bearer`) | Implementado y probado (`SecurityConfigTest` + tests MVC/E2E con `SecurityTestSupport`) |
 | Manejo global de errores (2.4) | Implementado y probado |
 | OpenAPI (2.6): 15 endpoints documentados y Swagger UI con `springdoc-openapi` 2.8.9 | Implementado y probado |
 | Colección Postman (2.7) y pruebas E2E (2.8) | Implementado (3 flujos con JPA/H2) |

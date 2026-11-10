@@ -28,11 +28,14 @@ Incremento posterior a E2, **publicado** en `origin/main` (`46eaef3`, 2026-10-15
 - **Esquema con Flyway** (`V1__initial_schema.sql`) y `spring.jpa.hibernate.ddl-auto=validate`.
 - **Borde REST (Fases 2.1–2.4 y 2.5)**: 6 controladores sobre los 6 puertos de entrada
   (**15 endpoints**), DTO y mappers web, validación `@Valid` (400), manejo global de errores con
-  respuesta uniforme y resolución temporal del `ActorContext` por cabeceras.
-- **OpenAPI (2.6)**: los 15 endpoints documentados con `@Tag`, `@Operation`, `@ApiResponse` y las
-  cabeceras `X-Actor-Id` / `X-Actor-Role`; `/v3/api-docs` y Swagger UI verificados con `OpenApiDocsTest`.
+  respuesta uniforme y `ActorContext` resuelto desde el JWT autenticado.
+- **Seguridad (Unidad 4)**: resource server JWT `stateless` (HS256, secreto externo, autoridad
+  `ROLE_<role>`); 401 sin token o con token inválido, 403 cuando la regla de rol del caso de uso lo impide.
+- **OpenAPI (2.6)**: los 15 endpoints documentados con `@Tag`, `@Operation` y `@ApiResponse`, con el
+  esquema `bearerAuth` como requisito global; `/v3/api-docs` y Swagger UI verificados con `OpenApiDocsTest`.
 - **Postman (2.7)**: `docs/postman/NexusMarket.postman_collection.json` (6 carpetas, 15 requests).
-- **Pendiente**: pruebas end-to-end (2.8).
+- **Pruebas end-to-end (2.8)**: tres flujos reales (catálogo, pedidos y devoluciones) en `ApiFlowE2ETest`.
+- **Pendiente**: emisión de tokens y login (fuera de esta evidencia; ver "Seguridad").
 - **Asociaciones JPA**: siguen como columnas escalares `Long` (P-1); el esquema definitivo es Flyway.
 - Plan detallado: [docs/PLAN_API_WEB.md](docs/PLAN_API_WEB.md).
 
@@ -45,6 +48,7 @@ Incremento posterior a E2, **publicado** en `origin/main` (`46eaef3`, 2026-10-15
 - **Flyway** como fuente única del esquema (migraciones en `db/migration`).
 - **H2** exclusivamente para **pruebas** (perfil `test`, en modo compatibilidad MySQL).
 - **Spring Boot Validation** (`@Valid`) para la validación de entrada del borde REST.
+- **Spring Security** + **OAuth2 Resource Server** (validación JWT HS256).
 - **JUnit 5** y **AssertJ**.
 
 ## Estructura del repositorio
@@ -136,22 +140,43 @@ duplican.
 - **Esquema**: lo crea **Flyway** (`V1__initial_schema.sql`); Hibernate solo valida
   (`spring.jpa.hibernate.ddl-auto=validate`).
 - **Borde REST (Fases 2.1–2.4 y 2.5)**: 6 controladores, 15 endpoints, DTO y mappers web, validación
-  de entrada (`@Valid` → 400), manejo global de errores (`@RestControllerAdvice` → 400/403/404/409/500)
-  y `ActorContext` provisional por cabeceras `X-Actor-Id` / `X-Actor-Role` (**no es autenticación**;
-  la seguridad real es la Unidad 4).
+  de entrada (`@Valid` → 400), manejo global de errores (`@RestControllerAdvice` → 400/401/403/404/409/500)
+  y `ActorContext` resuelto desde los claims del JWT (Unidad 4).
 - **Evidencia 5**: 2.6 (OpenAPI de los 15 endpoints), 2.7 (colección Postman), 2.8 (pruebas E2E de
   los tres flujos reales) y 2.9 (paginación de los cuatro listados) resueltas.
 - **Paginación (2.9)**: los listados aceptan `page` (≥0), `size` (1-100, por defecto 20) y
   `sort` (`campo` o `campo,asc|desc`); responden `content`, `page`, `size`, `totalElements` y
   `totalPages`. Filtros opcionales: `sellerId` y `status` en productos, `warehouseId` en inventario.
 - **Calidad**: JaCoCo mide en la fase `test` y `mvn verify` exige ≥ 80 % líneas y ≥ 65 % ramas
-  (actual: 86.0 % líneas y 70.8 % ramas).
+  (actual: 86.5 % líneas y 71.5 % ramas).
 - **Decisiones provisionales** (no definitivas): relaciones como columnas `Long` (P-1), conservar
   `@ElementCollection` (P-2) y mantener las validaciones de negocio en la capa de aplicación (P-3).
-- **Pruebas:** `mvn -B clean test` → **211/211 verdes**; integración contra MySQL 8.0 → **10/10**.
+- **Pruebas:** `mvn -B clean verify` → **224/224 verdes** (incluye `jacoco:check`); integración contra MySQL 8.0 → **10/10**.
 - **Decisiones, supuestos y alcance real** del incremento: [docs/servicios-de-dominio.md](docs/servicios-de-dominio.md).
 - Preguntas abiertas del dominio (variantes, contenido del pedido, catálogo de estados,
   reportes): [docs/modelo-de-dominio.md](docs/modelo-de-dominio.md), sección 11.
+
+## Seguridad (Unidad 4)
+
+- **Resource Server JWT `stateless`**: sin login, sin HTTP Basic y sin sesión. Toda petición a
+  `/api/**` exige `Authorization: Bearer <jwt>`.
+- **Algoritmo y secreto**: HS256. El secreto se lee de la variable de entorno `JWT_SECRET` (mínimo
+  32 bytes UTF-8); la aplicación falla al arrancar si falta o es más corto. **No se versiona ningún
+  secreto real**: el valor de `application-test.properties` es un valor falso exclusivo de pruebas.
+- **Claims**: `sub` = id `Long` positivo del usuario (en formato String), `role` = valor exacto del
+  enum `Role`, más `iat`/`exp` estándar.
+- **Autoridad**: el claim `role` se convierte en `ROLE_<role>` (por ejemplo `ROLE_SELLER`).
+- **ActorContext**: se construye desde el JWT; las cabeceras `X-Actor-Id` y `X-Actor-Role` fueron
+  eliminadas.
+- **Rutas públicas**: `/v3/api-docs/**`, `/swagger-ui/**` y `/swagger-ui.html`. El resto requiere token.
+- **Respuestas**: 401 si falta el token, es inválido, está expirado o sus claims no son válidos;
+  403 cuando el rol no está permitido para el caso de uso (RG-03).
+- **Prueba manual**: generar un token HS256 en <https://jwt.io> con el mismo `JWT_SECRET` y los
+  claims indicados (por ejemplo `{"sub":"25","role":"BUYER","iat":...,"exp":...}`) y enviarlo como
+  `Authorization: Bearer <token>`.
+- **Limitaciones**: esta evidencia no incluye emisión de tokens, login, refresh ni rotación de
+  secreto. El secreto es simétrico y compartido, y la autorización por rol se aplica en los servicios
+  de aplicación, no con reglas de URL.
 
 ## Fuentes oficiales
 
