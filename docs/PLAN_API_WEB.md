@@ -279,10 +279,11 @@ docs/ · README.md                          ← documentación de la evidencia
 | 2.6 | OpenAPI / Swagger UI con esquema `bearerAuth` | ✅ Implementado |
 | 2.7 | Colección Postman con `Authorization: Bearer` | ✅ Implementado |
 | 2.8 | Pruebas de integración end-to-end | ✅ Implementado (3 flujos) |
+| 2.10 | Pedidos con ítems: carrito, precio histórico, total e inventario | ✅ Implementado (2026-11-10) |
 | 3 | Cierre de la evidencia (documentación y trazabilidad) | 🔄 En curso |
 | 4 | Seguridad JWT `stateless` (Unidad 4, ver §14) | ✅ Implementado |
 
-**Pruebas:** `mvn -B verify` → **224/224 verdes** (incluye `jacoco:check`); integración contra MySQL
+**Pruebas:** `mvn -B verify` → **252/252 verdes** (incluye `jacoco:check`); integración contra MySQL
 8.0 → **10/10** (excluida del build por defecto mediante la etiqueta `mysql`).
 
 **Publicado:** `origin/main` en `46eaef3` (2026-10-15).
@@ -326,3 +327,29 @@ docs/ · README.md                          ← documentación de la evidencia
 - **Limitaciones**: no hay emisión de tokens, login, refresh ni rotación de secreto; el secreto es
   simétrico; la autorización por rol se aplica en la capa de aplicación.
 - **Pruebas**: `SecurityConfigTest` (11 casos), más `SecurityTestSupport` en los tests MVC y E2E.
+
+---
+
+## 15. Pedidos con ítems (2026-11-10)
+
+> Incremento autorizado por el estudiante. No modifica la seguridad JWT ni las rutas existentes;
+> añade líneas al pedido y completa el cálculo del total.
+
+- **Dominio**: `OrderItem` (`id`, `orderId`, `productId`, `quantity`, `unitPrice`) y `Order` con
+  `items`, `hasItems()`, `findItem`, `addItem`, `removeItem` y `total()`. Las líneas solo se editan
+  en `CART`; las reglas de ciclo de vida (RN-13/RN-16) se mantienen.
+- **Migración**: `V3__order_items_and_product_price.sql` (V2 ya estaba ocupada por los índices de la
+  fase 2.9). Añade `products.price DECIMAL(12,2)` y `order_items` con `UNIQUE(order_id, product_id)`,
+  claves foráneas e índices.
+- **Decisión D-PRICE**: la especificación no define el precio del producto; se agrega como atributo
+  mínimo para poder guardar la instantánea `unitPrice`. Escala 2, redondeo `HALF_UP`; al registrar,
+  un `price` enviado debe ser mayor que 0, y el carrito rechaza productos sin precio positivo.
+- **Casos de uso**: agregar, actualizar cantidad, eliminar, consultar detalle y validar contenido
+  antes de `PENDING_PAYMENT`/`PAID`.
+- **API**: `POST /api/orders/{orderId}/items`, `PATCH`/`DELETE .../items/{itemId}` y
+  `GET /api/orders/{orderId}` (incluye `items` y `total`).
+- **Concurrencia**: pago transaccional con bloqueo pesimista del pedido y de las filas de inventario;
+  el reintento de `PAID` es idempotente y no descuenta dos veces.
+- **Pruebas**: `OrderServiceTest`, `OrderControllerTest`, `JpaOrderItemRepositoryAdapterTest` y el
+  flujo E2E con JWT cubren las reglas, la persistencia y la migración.
+- **Limitaciones**: sin pasarela de pagos, sin reserva temporal de stock y sin precio por variante.

@@ -177,7 +177,7 @@ $warehouse = Invoke-RestMethod -Method Post -Uri "$base/api/warehouses" -Headers
 $marketplace = Invoke-RestMethod -Method Post -Uri "$base/api/warehouses" -Headers $admin -ContentType "application/json" -Body '{"type":"MARKETPLACE"}'
 
 # 3. Registrar producto publicado.
-$product = Invoke-RestMethod -Method Post -Uri "$base/api/products" -Headers $sellerHeaders -ContentType "application/json" -Body '{"type":"PHYSICAL","status":"PUBLISHED","variants":["Color: negro"]}'
+$product = Invoke-RestMethod -Method Post -Uri "$base/api/products" -Headers $sellerHeaders -ContentType "application/json" -Body '{"type":"PHYSICAL","status":"PUBLISHED","variants":["Color: negro"],"price":25000.00}'
 
 # 4. Registrar existencias y reservar 3 unidades.
 $stock = Invoke-RestMethod -Method Post -Uri "$base/api/inventories" -Headers $sellerHeaders -ContentType "application/json" -Body (@{
@@ -208,8 +208,9 @@ $sqlBuyer = "INSERT INTO users (full_name,email,identity_document,role,status) V
 $buyerUserId = (& mysql @mysqlBase -N -B -e "SELECT id FROM users WHERE email='$buyerEmail';" nexusmarket).Trim()
 $buyerHeaders = @{ Authorization = "Bearer $(New-Token "$buyerUserId" 'BUYER')" }
 
-# 7. Crear pedido y avanzar el ciclo hasta PAID.
+# 7. Crear pedido, agregar items y avanzar el ciclo hasta PAID.
 $order = Invoke-RestMethod -Method Post -Uri "$base/api/orders" -Headers $buyerHeaders
+$order = Invoke-RestMethod -Method Post -Uri "$base/api/orders/$($order.id)/items" -Headers $buyerHeaders -ContentType "application/json" -Body (@{ productId = $product.id; quantity = 2 } | ConvertTo-Json)
 $order = Invoke-RestMethod -Method Patch -Uri "$base/api/orders/$($order.id)/status" -Headers $buyerHeaders -ContentType "application/json" -Body '{"status":"PENDING_PAYMENT"}'
 $order = Invoke-RestMethod -Method Patch -Uri "$base/api/orders/$($order.id)/status" -Headers $buyerHeaders -ContentType "application/json" -Body '{"status":"PAID"}'
 
@@ -227,11 +228,11 @@ Invoke-RestMethod -Method Get -Uri "$base/api/warehouses?sellerId=$($seller.id)"
 |---|---|
 | 1 | `id` y `userId` del vendedor; se usan en `$seller.id` y `$seller.userId`. |
 | 2 | Bodega `SELLER` con `sellerId`; bodega `MARKETPLACE` con `sellerId` nulo. |
-| 3 | Producto con `status = PUBLISHED` y `sellerId` del vendedor. |
+| 3 | Producto con `status = PUBLISHED`, `price` y `sellerId` del vendedor. |
 | 4 | Inventario con `quantity = 10` y, tras reservar, `quantity = 7`. |
 | 5 | Producto con `status = SUSPENDED`; deja de aparecer en `/published`. |
 | 6 | Usuario `BUYER` y fila en `buyers`; `$buyerUserId` es el `sub` del token del comprador. |
-| 7 | Pedido en `CART`, luego `PENDING_PAYMENT` y `PAID`. |
+| 7 | Pedido en `CART` con un ítem (`quantity = 2`, `unitPrice` histórico, `total`), luego `PENDING_PAYMENT` y `PAID`; el stock baja en 2. |
 | 8 | Reembolso con `orderId` del pedido y `id` generado. |
 
 ### 5.5 Verificación de la secuencia contra el código
@@ -258,13 +259,13 @@ mvn -B verify
 Salida real (2026-11-10, tras la migración a JWT):
 
 ```text
-[INFO] Tests run: 224, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Tests run: 252, Failures: 0, Errors: 0, Skipped: 0
 [INFO] All coverage checks have been met.
 [INFO] BUILD SUCCESS
 ```
 
-- La suite por defecto ejecuta **224 pruebas**, incluye `jacoco:check` (≥ 80 % líneas, ≥ 65 % ramas)
-  y deja la cobertura en **86.5 % líneas y 71.5 % ramas**.
+- La suite por defecto ejecuta **252 pruebas**, incluye `jacoco:check` (≥ 80 % líneas, ≥ 65 % ramas)
+  y deja la cobertura en **88.1 % líneas y 72.5 % ramas**.
 - `PersistenceMysqlIntegrationTest` contiene **10 pruebas** con `@Tag("mysql")` y queda excluida por
   defecto (`pom.xml`), porque exige una instancia MySQL real.
 - Para ejecutarla:
@@ -278,8 +279,9 @@ mvn -B test -Dtest=PersistenceMysqlIntegrationTest -DexcludedTestTags=none
 1. **No hay emisión de tokens ni login.** La API valida JWT HS256 con `JWT_SECRET`, pero no existe
    endpoint de autenticación, refresh ni rotación de secreto; para la demo el token se firma localmente
    (§5.3). El secreto es simétrico y compartido.
-2. **El pedido no tiene líneas, cantidades ni total.** `Order` solo guarda `buyerId` y `status`; el
-   `Cart` existe en el dominio pero no está conectado al flujo REST.
+2. **El pedido ya tiene líneas, cantidades, precio histórico y total** (`OrderItem`, migración V3).
+   El precio se agregó como atributo del producto (**D-PRICE**) porque la especificación no lo define.
+   No hay pasarela de pagos: `PAID` solo cambia el estado y descuenta inventario.
 3. **No hay endpoint para registrar compradores ni administradores.** La demo crea el comprador por
    SQL. El administrador se simula con un token de rol `ADMINISTRATOR`, sin fila en `users`.
 4. **Asociaciones como columnas `Long` (P-1).** No hay claves foráneas ni asociaciones JPA; el
@@ -303,7 +305,7 @@ mvn -B test -Dtest=PersistenceMysqlIntegrationTest -DexcludedTestTags=none
 | ¿Por qué `Long` en lugar de `@ManyToOne`? | Decisión P-1: agregados separados y esquema versionado con Flyway. Las asociaciones definitivas son deuda declarada. |
 | ¿Dónde se cumplen las reglas del negocio? | En el dominio cuando dependen de una entidad (`Order.changeStatus`, `Inventory.reserve`) y en los servicios cuando dependen de estado externo (unicidad RN-14/15, existencia de referencias). |
 | ¿Por qué H2 si la base real es MySQL? | H2 se usa **solo** en el perfil `test`. La configuración real es MySQL por variables de entorno; la suite MySQL se ejecuta aparte con `-DexcludedTestTags=none`. |
-| ¿El sistema ya gestiona pedidos completos? | No. `Order` no tiene ítems ni total; está declarado como pendiente. La demo muestra el ciclo de estados, no una compra con productos. |
+| ¿El sistema ya gestiona pedidos completos? | Sí en el alcance académico: carrito con ítems, precio histórico, subtotales y total, y descuento de inventario al pagar. **No** hay pasarela de pagos ni confirmación financiera real. |
 | ¿Por qué un POST devuelve 200 y no 201? | Es un ajuste de semántica HTTP pendiente; no forma parte de las tareas de esta preparación. |
 | ¿Qué falta para cerrar la Evidencia 5? | Nada del alcance 2.1–2.9: todo está implementado y verificado. Quedan como deuda declarada el versionado de API, la CI y la emisión de tokens. |
 | ¿La bodega Marketplace puede crearse sin vendedor? | Sí. `CreateWarehouseRequest` valida condicionalmente: `SELLER` exige `sellerId`; `MARKETPLACE` exige que sea nulo. Hay pruebas para ambos casos. |

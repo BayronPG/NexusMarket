@@ -168,6 +168,10 @@ alcance. `UserRepository.findById` existe y podría usarse para esa validación 
 pero el pedido **no es funcionalmente completo**: sin ítems no hay una compra real. El ciclo de
 pedidos **no debe presentarse como terminado**.
 
+> **Actualización (2026-11-10):** el incremento "pedidos con ítems" resolvió las líneas, cantidades,
+> precio histórico, subtotales, total y descuento atómico de inventario al pagar (migración V3,
+> decisión D-PRICE). Siguen fuera de alcance la factura, el envío y la devolución por ítem.
+
 ---
 
 ## 7. Decisiones y supuestos (provisionales)
@@ -226,7 +230,7 @@ pedidos **no debe presentarse como terminado**.
 
 1. **Actor de cuatro casos de uso** (CU-01, CU-02, CU-12 y CU-14): no definido en la fuente (§3.3a).
 2. **Contenido y alcance de los reportes** (CU-16): el actor es determinable (Supervisor), el contenido no (§3.3b).
-3. **Ítems del pedido, cantidades y precios**: bloquean la funcionalidad completa de carrito y pedidos (§6).
+3. **Ítems del pedido, cantidades y precios**: **resuelto** el 2026-11-10 con decisión D-PRICE (precio del producto) y migración V3 (§6).
 4. **Variantes del producto**: naturaleza pendiente.
 5. **Persistencia**: elección de MySQL y/o MongoDB (decisión provisional D1/D2; evidencia de API Web).
 6. **Autenticación real** (RG-01): evidencia de seguridad posterior (§5).
@@ -246,7 +250,8 @@ sincronización documental `e7d2c1e`):
 | **8 mappers** dominio ↔ JPA (`infrastructure/persistence/jpa/mapper/`) | Implementado y probado |
 | **8 repositorios Spring Data** y **8 adaptadores JPA** de los puertos de salida (`infrastructure/persistence/jpa/repository/` y `adapter/`) | Implementado y probado |
 | Esquema con Flyway (`V1__initial_schema.sql`) e `hibernate.ddl-auto=validate` | Implementado; verificación de integración en `PersistenceMysqlIntegrationTest` (tag `mysql`) |
-| Borde REST: **6 controladores, 15 endpoints**, DTO, mappers web y validación `@Valid` | Implementado y probado |
+| Borde REST: **6 controladores, 18 endpoints**, DTO, mappers web y validación `@Valid` | Implementado y probado |
+| Pedidos con ítems: `OrderItem`, precio histórico, total y descuento de inventario al pagar (V3, D-PRICE) | Implementado y probado (`OrderServiceTest`, E2E con JWT) |
 | `ActorContext` desde JWT (resource server HS256, `Authorization: Bearer`) | Implementado y probado (`SecurityConfigTest` + tests MVC/E2E con `SecurityTestSupport`) |
 | Manejo global de errores (2.4) | Implementado y probado |
 | OpenAPI (2.6): 15 endpoints documentados y Swagger UI con `springdoc-openapi` 2.8.9 | Implementado y probado |
