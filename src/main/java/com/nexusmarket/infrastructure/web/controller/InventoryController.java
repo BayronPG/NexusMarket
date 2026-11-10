@@ -8,8 +8,6 @@ import com.nexusmarket.infrastructure.web.dto.ReserveStockRequest;
 import com.nexusmarket.infrastructure.web.mapper.InventoryWebMapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.Parameters;
-import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -51,14 +49,10 @@ public class InventoryController {
 
     @PostMapping
     @Operation(summary = "Registra stock de un producto en una bodega")
-    @Parameters({
-            @Parameter(name = "X-Actor-Id", in = ParameterIn.HEADER, required = true,
-                    description = "Identificador del actor (provisional, no es autenticacion)"),
-            @Parameter(name = "X-Actor-Role", in = ParameterIn.HEADER, required = true,
-                    description = "Rol del actor: BUYER, SELLER, ADMINISTRATOR, LOGISTICS_OPERATOR")})
     @ApiResponses({
+            @ApiResponse(responseCode = "401", description = "Token ausente o invalido"),
             @ApiResponse(responseCode = "200", description = "Stock registrado"),
-            @ApiResponse(responseCode = "400", description = "Cuerpo o cabeceras invalidas"),
+            @ApiResponse(responseCode = "400", description = "Cuerpo invalido"),
             @ApiResponse(responseCode = "403", description = "El rol no puede registrar stock"),
             @ApiResponse(responseCode = "404", description = "El producto o la bodega no existen"),
             @ApiResponse(responseCode = "409", description = "El inventario ya existe para ese producto y bodega")})
@@ -70,14 +64,10 @@ public class InventoryController {
 
     @PostMapping("/reservations")
     @Operation(summary = "Reserva stock de un producto")
-    @Parameters({
-            @Parameter(name = "X-Actor-Id", in = ParameterIn.HEADER, required = true,
-                    description = "Identificador del actor (provisional, no es autenticacion)"),
-            @Parameter(name = "X-Actor-Role", in = ParameterIn.HEADER, required = true,
-                    description = "Rol del actor: BUYER, SELLER, ADMINISTRATOR, LOGISTICS_OPERATOR")})
     @ApiResponses({
+            @ApiResponse(responseCode = "401", description = "Token ausente o invalido"),
             @ApiResponse(responseCode = "200", description = "Stock reservado"),
-            @ApiResponse(responseCode = "400", description = "Cuerpo o cabeceras invalidas"),
+            @ApiResponse(responseCode = "400", description = "Cuerpo invalido"),
             @ApiResponse(responseCode = "403", description = "El rol no puede reservar stock"),
             @ApiResponse(responseCode = "404", description = "El inventario no existe"),
             @ApiResponse(responseCode = "409", description = "Stock insuficiente (RN)")})
@@ -89,16 +79,10 @@ public class InventoryController {
 
     @GetMapping
     @Operation(summary = "Consulta el stock de un producto")
-    @Parameters({
-            @Parameter(name = "X-Actor-Id", in = ParameterIn.HEADER, required = true,
-                    description = "Identificador del actor (provisional, no es autenticacion)"),
-            @Parameter(name = "X-Actor-Role", in = ParameterIn.HEADER, required = true,
-                    description = "Rol del actor: BUYER, SELLER, ADMINISTRATOR, LOGISTICS_OPERATOR"),
-            @Parameter(name = "productId", in = ParameterIn.QUERY, required = true,
-                    description = "Identificador del producto")})
     @ApiResponses({
+            @ApiResponse(responseCode = "401", description = "Token ausente o invalido"),
             @ApiResponse(responseCode = "200", description = "Stock del producto"),
-            @ApiResponse(responseCode = "400", description = "Cabeceras o parametro invalidos"),
+            @ApiResponse(responseCode = "400", description = "Parametro invalido"),
             @ApiResponse(responseCode = "403", description = "El rol no puede consultar el stock")})
     public PageResponse<InventoryResponse> findByProduct(
             @Parameter(hidden = true) ActorContext actor,

@@ -7,8 +7,6 @@ import com.nexusmarket.infrastructure.web.dto.WarehouseResponse;
 import com.nexusmarket.infrastructure.web.mapper.WarehouseWebMapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.Parameters;
-import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -49,14 +47,10 @@ public class WarehouseController {
 
     @PostMapping
     @Operation(summary = "Registra una bodega")
-    @Parameters({
-            @Parameter(name = "X-Actor-Id", in = ParameterIn.HEADER, required = true,
-                    description = "Identificador del actor (provisional, no es autenticacion)"),
-            @Parameter(name = "X-Actor-Role", in = ParameterIn.HEADER, required = true,
-                    description = "Rol del actor: BUYER, SELLER, ADMINISTRATOR, LOGISTICS_OPERATOR")})
     @ApiResponses({
+            @ApiResponse(responseCode = "401", description = "Token ausente o invalido"),
             @ApiResponse(responseCode = "200", description = "Bodega registrada"),
-            @ApiResponse(responseCode = "400", description = "Cuerpo o cabeceras invalidas (sellerId incoherente con el tipo)"),
+            @ApiResponse(responseCode = "400", description = "Cuerpo invalido (sellerId incoherente con el tipo)"),
             @ApiResponse(responseCode = "403", description = "El rol no puede registrar bodegas"),
             @ApiResponse(responseCode = "404", description = "El vendedor no existe")})
     public WarehouseResponse register(@Parameter(hidden = true) ActorContext actor,
@@ -67,16 +61,10 @@ public class WarehouseController {
 
     @GetMapping
     @Operation(summary = "Lista las bodegas de un vendedor")
-    @Parameters({
-            @Parameter(name = "X-Actor-Id", in = ParameterIn.HEADER, required = true,
-                    description = "Identificador del actor (provisional, no es autenticacion)"),
-            @Parameter(name = "X-Actor-Role", in = ParameterIn.HEADER, required = true,
-                    description = "Rol del actor: BUYER, SELLER, ADMINISTRATOR, LOGISTICS_OPERATOR"),
-            @Parameter(name = "sellerId", in = ParameterIn.QUERY, required = true,
-                    description = "Identificador del vendedor")})
     @ApiResponses({
+            @ApiResponse(responseCode = "401", description = "Token ausente o invalido"),
             @ApiResponse(responseCode = "200", description = "Bodegas del vendedor"),
-            @ApiResponse(responseCode = "400", description = "Cabeceras o parametro invalidos"),
+            @ApiResponse(responseCode = "400", description = "Parametro invalido"),
             @ApiResponse(responseCode = "403", description = "El rol no puede consultar bodegas")})
     public PageResponse<WarehouseResponse> findBySeller(
             @Parameter(hidden = true) ActorContext actor,

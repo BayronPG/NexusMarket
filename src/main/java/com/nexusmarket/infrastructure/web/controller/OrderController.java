@@ -7,8 +7,6 @@ import com.nexusmarket.infrastructure.web.dto.OrderResponse;
 import com.nexusmarket.infrastructure.web.mapper.OrderWebMapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.Parameters;
-import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -39,14 +37,10 @@ public class OrderController {
 
     @PostMapping
     @Operation(summary = "Crea un pedido en estado CART")
-    @Parameters({
-            @Parameter(name = "X-Actor-Id", in = ParameterIn.HEADER, required = true,
-                    description = "Identificador del actor (provisional, no es autenticacion)"),
-            @Parameter(name = "X-Actor-Role", in = ParameterIn.HEADER, required = true,
-                    description = "Rol del actor: BUYER, SELLER, ADMINISTRATOR, LOGISTICS_OPERATOR")})
     @ApiResponses({
+            @ApiResponse(responseCode = "401", description = "Token ausente o invalido"),
             @ApiResponse(responseCode = "200", description = "Pedido creado"),
-            @ApiResponse(responseCode = "400", description = "Cabeceras de actor invalidas"),
+            @ApiResponse(responseCode = "400", description = "Solicitud invalida"),
             @ApiResponse(responseCode = "403", description = "Solo un comprador crea pedidos"),
             @ApiResponse(responseCode = "404", description = "El comprador no existe")})
     public OrderResponse create(@Parameter(hidden = true) ActorContext actor) {
@@ -55,14 +49,10 @@ public class OrderController {
 
     @PatchMapping("/{orderId}/status")
     @Operation(summary = "Cambia el estado de un pedido")
-    @Parameters({
-            @Parameter(name = "X-Actor-Id", in = ParameterIn.HEADER, required = true,
-                    description = "Identificador del actor (provisional, no es autenticacion)"),
-            @Parameter(name = "X-Actor-Role", in = ParameterIn.HEADER, required = true,
-                    description = "Rol del actor: BUYER, SELLER, ADMINISTRATOR, LOGISTICS_OPERATOR")})
     @ApiResponses({
+            @ApiResponse(responseCode = "401", description = "Token ausente o invalido"),
             @ApiResponse(responseCode = "200", description = "Estado actualizado"),
-            @ApiResponse(responseCode = "400", description = "Cuerpo o cabeceras invalidas"),
+            @ApiResponse(responseCode = "400", description = "Cuerpo invalido"),
             @ApiResponse(responseCode = "403", description = "El actor no puede operar este pedido (RG-03)"),
             @ApiResponse(responseCode = "404", description = "El pedido no existe"),
             @ApiResponse(responseCode = "409", description = "Transicion no permitida (RN-16) o pedido finalizado (RN-13)")})
@@ -76,14 +66,10 @@ public class OrderController {
 
     @GetMapping("/{orderId}")
     @Operation(summary = "Consulta un pedido")
-    @Parameters({
-            @Parameter(name = "X-Actor-Id", in = ParameterIn.HEADER, required = true,
-                    description = "Identificador del actor (provisional, no es autenticacion)"),
-            @Parameter(name = "X-Actor-Role", in = ParameterIn.HEADER, required = true,
-                    description = "Rol del actor: BUYER, SELLER, ADMINISTRATOR, LOGISTICS_OPERATOR")})
     @ApiResponses({
+            @ApiResponse(responseCode = "401", description = "Token ausente o invalido"),
             @ApiResponse(responseCode = "200", description = "Pedido encontrado"),
-            @ApiResponse(responseCode = "400", description = "Cabeceras de actor invalidas"),
+            @ApiResponse(responseCode = "400", description = "Solicitud invalida"),
             @ApiResponse(responseCode = "403", description = "El rol no puede consultar pedidos"),
             @ApiResponse(responseCode = "404", description = "El pedido no existe")})
     public OrderResponse find(@Parameter(hidden = true) ActorContext actor,

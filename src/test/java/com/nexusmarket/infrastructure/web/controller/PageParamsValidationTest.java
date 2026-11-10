@@ -6,11 +6,16 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.nexusmarket.application.port.in.ManageCatalogUseCase;
 import com.nexusmarket.infrastructure.web.ActorContextArgumentResolver;
 import com.nexusmarket.infrastructure.web.WebMvcConfig;
+import com.nexusmarket.infrastructure.security.SecurityConfig;
+import com.nexusmarket.domain.user.Role;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 /**
@@ -20,7 +25,8 @@ import org.springframework.test.web.servlet.MockMvc;
  * {@code sort} produce 400 before the use case is invoked.</p>
  */
 @WebMvcTest(CatalogController.class)
-@Import({WebMvcConfig.class, ActorContextArgumentResolver.class})
+@ActiveProfiles("test")
+@Import({WebMvcConfig.class, ActorContextArgumentResolver.class, SecurityConfig.class})
 class PageParamsValidationTest {
 
     @Autowired
@@ -33,8 +39,7 @@ class PageParamsValidationTest {
     void sizeAboveTheMaximumIsRejected() throws Exception {
         mockMvc.perform(get("/api/products/published")
                         .param("size", "101")
-                        .header(ActorContextArgumentResolver.HEADER_ACTOR_ID, "9")
-                        .header(ActorContextArgumentResolver.HEADER_ACTOR_ROLE, "BUYER"))
+                        .with(SecurityTestSupport.jwt("9", Role.BUYER)))
                 .andExpect(status().isBadRequest());
     }
 
@@ -42,8 +47,7 @@ class PageParamsValidationTest {
     void sizeZeroIsRejected() throws Exception {
         mockMvc.perform(get("/api/products/published")
                         .param("size", "0")
-                        .header(ActorContextArgumentResolver.HEADER_ACTOR_ID, "9")
-                        .header(ActorContextArgumentResolver.HEADER_ACTOR_ROLE, "BUYER"))
+                        .with(SecurityTestSupport.jwt("9", Role.BUYER)))
                 .andExpect(status().isBadRequest());
     }
 
@@ -51,8 +55,7 @@ class PageParamsValidationTest {
     void negativePageIsRejected() throws Exception {
         mockMvc.perform(get("/api/products/published")
                         .param("page", "-1")
-                        .header(ActorContextArgumentResolver.HEADER_ACTOR_ID, "9")
-                        .header(ActorContextArgumentResolver.HEADER_ACTOR_ROLE, "BUYER"))
+                        .with(SecurityTestSupport.jwt("9", Role.BUYER)))
                 .andExpect(status().isBadRequest());
     }
 
@@ -60,8 +63,7 @@ class PageParamsValidationTest {
     void malformedSortIsRejected() throws Exception {
         mockMvc.perform(get("/api/products/published")
                         .param("sort", "id;drop")
-                        .header(ActorContextArgumentResolver.HEADER_ACTOR_ID, "9")
-                        .header(ActorContextArgumentResolver.HEADER_ACTOR_ROLE, "BUYER"))
+                        .with(SecurityTestSupport.jwt("9", Role.BUYER)))
                 .andExpect(status().isBadRequest());
     }
 
@@ -69,8 +71,7 @@ class PageParamsValidationTest {
     void unknownSortFieldIsRejected() throws Exception {
         mockMvc.perform(get("/api/products/published")
                         .param("sort", "password,asc")
-                        .header(ActorContextArgumentResolver.HEADER_ACTOR_ID, "9")
-                        .header(ActorContextArgumentResolver.HEADER_ACTOR_ROLE, "BUYER"))
+                        .with(SecurityTestSupport.jwt("9", Role.BUYER)))
                 .andExpect(status().isBadRequest());
     }
 }

@@ -7,8 +7,6 @@ import com.nexusmarket.infrastructure.web.dto.SellerResponse;
 import com.nexusmarket.infrastructure.web.mapper.SellerWebMapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.Parameters;
-import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -40,14 +38,10 @@ public class SellerController {
 
     @PostMapping
     @Operation(summary = "Registra un vendedor con su usuario")
-    @Parameters({
-            @Parameter(name = "X-Actor-Id", in = ParameterIn.HEADER, required = true,
-                    description = "Identificador del actor (provisional, no es autenticacion)"),
-            @Parameter(name = "X-Actor-Role", in = ParameterIn.HEADER, required = true,
-                    description = "Rol del actor: BUYER, SELLER, ADMINISTRATOR, LOGISTICS_OPERATOR")})
     @ApiResponses({
+            @ApiResponse(responseCode = "401", description = "Token ausente o invalido"),
             @ApiResponse(responseCode = "200", description = "Vendedor registrado"),
-            @ApiResponse(responseCode = "400", description = "Cuerpo o cabeceras invalidas"),
+            @ApiResponse(responseCode = "400", description = "Cuerpo invalido"),
             @ApiResponse(responseCode = "403", description = "Solo el Administrador registra vendedores (RN-04)"),
             @ApiResponse(responseCode = "409", description = "Email (RN-15) o documento (RN-14) ya registrados")})
     public SellerResponse register(@Parameter(hidden = true) ActorContext actor,
@@ -58,14 +52,10 @@ public class SellerController {
 
     @GetMapping("/{sellerId}")
     @Operation(summary = "Consulta un vendedor")
-    @Parameters({
-            @Parameter(name = "X-Actor-Id", in = ParameterIn.HEADER, required = true,
-                    description = "Identificador del actor (provisional, no es autenticacion)"),
-            @Parameter(name = "X-Actor-Role", in = ParameterIn.HEADER, required = true,
-                    description = "Rol del actor: BUYER, SELLER, ADMINISTRATOR, LOGISTICS_OPERATOR")})
     @ApiResponses({
+            @ApiResponse(responseCode = "401", description = "Token ausente o invalido"),
             @ApiResponse(responseCode = "200", description = "Vendedor encontrado"),
-            @ApiResponse(responseCode = "400", description = "Cabeceras de actor invalidas"),
+            @ApiResponse(responseCode = "400", description = "Solicitud invalida"),
             @ApiResponse(responseCode = "403", description = "Solo el Administrador consulta vendedores"),
             @ApiResponse(responseCode = "404", description = "El vendedor no existe")})
     public SellerResponse find(@Parameter(hidden = true) ActorContext actor,

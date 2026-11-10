@@ -7,8 +7,6 @@ import com.nexusmarket.infrastructure.web.dto.RefundResponse;
 import com.nexusmarket.infrastructure.web.mapper.RefundWebMapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.Parameters;
-import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -36,14 +34,10 @@ public class RefundController {
 
     @PostMapping
     @Operation(summary = "Solicita un reembolso para un pedido")
-    @Parameters({
-            @Parameter(name = "X-Actor-Id", in = ParameterIn.HEADER, required = true,
-                    description = "Identificador del actor (provisional, no es autenticacion)"),
-            @Parameter(name = "X-Actor-Role", in = ParameterIn.HEADER, required = true,
-                    description = "Rol del actor: BUYER, SELLER, ADMINISTRATOR, LOGISTICS_OPERATOR")})
     @ApiResponses({
+            @ApiResponse(responseCode = "401", description = "Token ausente o invalido"),
             @ApiResponse(responseCode = "200", description = "Reembolso registrado"),
-            @ApiResponse(responseCode = "400", description = "Cuerpo o cabeceras invalidas"),
+            @ApiResponse(responseCode = "400", description = "Cuerpo invalido"),
             @ApiResponse(responseCode = "403", description = "El actor no puede solicitar el reembolso (RG-03)"),
             @ApiResponse(responseCode = "404", description = "El pedido o el comprador no existen")})
     public RefundResponse request(@Parameter(hidden = true) ActorContext actor,

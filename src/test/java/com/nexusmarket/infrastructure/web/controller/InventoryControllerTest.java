@@ -14,13 +14,17 @@ import com.nexusmarket.domain.inventory.Inventory;
 import com.nexusmarket.domain.user.Role;
 import com.nexusmarket.infrastructure.web.ActorContextArgumentResolver;
 import com.nexusmarket.infrastructure.web.WebMvcConfig;
+import com.nexusmarket.infrastructure.security.SecurityConfig;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 /**
@@ -29,7 +33,8 @@ import org.springframework.test.web.servlet.MockMvc;
  * <p>Fase 2.1 of docs/PLAN_API_WEB.md.</p>
  */
 @WebMvcTest(InventoryController.class)
-@Import({WebMvcConfig.class, ActorContextArgumentResolver.class})
+@ActiveProfiles("test")
+@Import({WebMvcConfig.class, ActorContextArgumentResolver.class, SecurityConfig.class})
 class InventoryControllerTest {
 
     @Autowired
@@ -55,8 +60,7 @@ class InventoryControllerTest {
                 .willReturn(inventory());
 
         mockMvc.perform(post("/api/inventories")
-                        .header(ActorContextArgumentResolver.HEADER_ACTOR_ID, "1")
-                        .header(ActorContextArgumentResolver.HEADER_ACTOR_ROLE, "LOGISTICS_OPERATOR")
+                        .with(SecurityTestSupport.jwt("1", Role.LOGISTICS_OPERATOR))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"productId\":1,\"warehouseId\":2,\"quantity\":7}"))
                 .andExpect(status().isOk())
@@ -72,8 +76,7 @@ class InventoryControllerTest {
                 .willReturn(inventory());
 
         mockMvc.perform(post("/api/inventories/reservations")
-                        .header(ActorContextArgumentResolver.HEADER_ACTOR_ID, "1")
-                        .header(ActorContextArgumentResolver.HEADER_ACTOR_ROLE, "LOGISTICS_OPERATOR")
+                        .with(SecurityTestSupport.jwt("1", Role.LOGISTICS_OPERATOR))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"productId\":1,\"warehouseId\":2,\"amount\":3}"))
                 .andExpect(status().isOk())
@@ -90,8 +93,7 @@ class InventoryControllerTest {
 
         mockMvc.perform(get("/api/inventories")
                         .param("productId", "1")
-                        .header(ActorContextArgumentResolver.HEADER_ACTOR_ID, "1")
-                        .header(ActorContextArgumentResolver.HEADER_ACTOR_ROLE, "SUPERVISOR"))
+                        .with(SecurityTestSupport.jwt("1", Role.SUPERVISOR)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content[0].id").value(9))
                 .andExpect(jsonPath("$.content[0].quantity").value(7))
@@ -101,8 +103,7 @@ class InventoryControllerTest {
     @Test
     void registerRejectsAMissingProductIdWithBadRequest() throws Exception {
         mockMvc.perform(post("/api/inventories")
-                        .header(ActorContextArgumentResolver.HEADER_ACTOR_ID, "1")
-                        .header(ActorContextArgumentResolver.HEADER_ACTOR_ROLE, "LOGISTICS_OPERATOR")
+                        .with(SecurityTestSupport.jwt("1", Role.LOGISTICS_OPERATOR))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"warehouseId\":2,\"quantity\":7}"))
                 .andExpect(status().isBadRequest());

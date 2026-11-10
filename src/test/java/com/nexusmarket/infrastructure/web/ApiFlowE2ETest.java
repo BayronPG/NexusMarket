@@ -14,6 +14,7 @@ import com.nexusmarket.domain.buyer.Buyer;
 import com.nexusmarket.domain.user.Role;
 import com.nexusmarket.domain.user.User;
 import com.nexusmarket.domain.user.UserStatus;
+import com.nexusmarket.infrastructure.web.controller.SecurityTestSupport;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -35,9 +36,6 @@ import org.springframework.test.web.servlet.MvcResult;
 @ActiveProfiles("test")
 class ApiFlowE2ETest {
 
-    private static final String ACTOR_ID = "X-Actor-Id";
-    private static final String ACTOR_ROLE = "X-Actor-Role";
-
     private final ObjectMapper json = new ObjectMapper();
 
     @Autowired
@@ -55,7 +53,7 @@ class ApiFlowE2ETest {
         long userId = sellerUserId(sellerId);
 
         long warehouseId = bodyOf(mockMvc.perform(post("/api/warehouses")
-                        .header(ACTOR_ID, "1").header(ACTOR_ROLE, "ADMINISTRATOR")
+                        .with(SecurityTestSupport.jwt("1", Role.ADMINISTRATOR))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"type\":\"SELLER\",\"sellerId\":" + sellerId + "}"))
                 .andExpect(status().isOk())
@@ -63,7 +61,7 @@ class ApiFlowE2ETest {
                 .andReturn()).get("id").asLong();
 
         long productId = bodyOf(mockMvc.perform(post("/api/products")
-                        .header(ACTOR_ID, userId).header(ACTOR_ROLE, "SELLER")
+                        .with(SecurityTestSupport.jwt(String.valueOf(userId), Role.SELLER))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"type\":\"PHYSICAL\",\"status\":\"PUBLISHED\",\"variants\":[\"M\"]}"))
                 .andExpect(status().isOk())
@@ -71,7 +69,7 @@ class ApiFlowE2ETest {
                 .andReturn()).get("id").asLong();
 
         mockMvc.perform(post("/api/inventories")
-                        .header(ACTOR_ID, userId).header(ACTOR_ROLE, "SELLER")
+                        .with(SecurityTestSupport.jwt(String.valueOf(userId), Role.SELLER))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"productId\":" + productId + ",\"warehouseId\":" + warehouseId
                                 + ",\"quantity\":10}"))
@@ -85,18 +83,18 @@ class ApiFlowE2ETest {
         long sellerId = registerSeller("nulo");
 
         mockMvc.perform(post("/api/warehouses")
-                        .header(ACTOR_ID, "1").header(ACTOR_ROLE, "ADMINISTRATOR")
+                        .with(SecurityTestSupport.jwt("1", Role.ADMINISTRATOR))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"type\":\"MARKETPLACE\",\"sellerId\":" + sellerId + "}"))
                 .andExpect(status().isBadRequest());
     }
 
     @Test
-    void missingActorHeadersAreRejected() throws Exception {
+    void missingJwtIsRejected() throws Exception {
         mockMvc.perform(post("/api/products")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"type\":\"PHYSICAL\",\"status\":\"PUBLISHED\"}"))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
@@ -104,18 +102,18 @@ class ApiFlowE2ETest {
         long userId = createBuyer("carlos");
 
         long orderId = bodyOf(mockMvc.perform(post("/api/orders")
-                        .header(ACTOR_ID, userId).header(ACTOR_ROLE, "BUYER"))
+                        .with(SecurityTestSupport.jwt(String.valueOf(userId), Role.BUYER)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("CART"))
                 .andReturn()).get("id").asLong();
 
         mockMvc.perform(get("/api/orders/" + orderId)
-                        .header(ACTOR_ID, userId).header(ACTOR_ROLE, "BUYER"))
+                        .with(SecurityTestSupport.jwt(String.valueOf(userId), Role.BUYER)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("CART"));
 
         mockMvc.perform(patch("/api/orders/" + orderId + "/status")
-                        .header(ACTOR_ID, userId).header(ACTOR_ROLE, "BUYER")
+                        .with(SecurityTestSupport.jwt(String.valueOf(userId), Role.BUYER))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"status\":\"PENDING_PAYMENT\"}"))
                 .andExpect(status().isOk())
@@ -126,11 +124,11 @@ class ApiFlowE2ETest {
     void anInvalidOrderTransitionReturnsConflict() throws Exception {
         long userId = createBuyer("diana");
         long orderId = bodyOf(mockMvc.perform(post("/api/orders")
-                        .header(ACTOR_ID, userId).header(ACTOR_ROLE, "BUYER"))
+                        .with(SecurityTestSupport.jwt(String.valueOf(userId), Role.BUYER)))
                 .andReturn()).get("id").asLong();
 
         mockMvc.perform(patch("/api/orders/" + orderId + "/status")
-                        .header(ACTOR_ID, userId).header(ACTOR_ROLE, "BUYER")
+                        .with(SecurityTestSupport.jwt(String.valueOf(userId), Role.BUYER))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"status\":\"SHIPPED\"}"))
                 .andExpect(status().isConflict());
@@ -141,7 +139,7 @@ class ApiFlowE2ETest {
         long userId = createBuyer("elena");
 
         mockMvc.perform(get("/api/orders/999999")
-                        .header(ACTOR_ID, userId).header(ACTOR_ROLE, "BUYER"))
+                        .with(SecurityTestSupport.jwt(String.valueOf(userId), Role.BUYER)))
                 .andExpect(status().isNotFound());
     }
 
@@ -149,11 +147,11 @@ class ApiFlowE2ETest {
     void refundIsRequestedForAnExistentOrder() throws Exception {
         long userId = createBuyer("felipe");
         long orderId = bodyOf(mockMvc.perform(post("/api/orders")
-                        .header(ACTOR_ID, userId).header(ACTOR_ROLE, "BUYER"))
+                        .with(SecurityTestSupport.jwt(String.valueOf(userId), Role.BUYER)))
                 .andReturn()).get("id").asLong();
 
         mockMvc.perform(post("/api/refunds")
-                        .header(ACTOR_ID, userId).header(ACTOR_ROLE, "BUYER")
+                        .with(SecurityTestSupport.jwt(String.valueOf(userId), Role.BUYER))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"orderId\":" + orderId + "}"))
                 .andExpect(status().isOk())
@@ -165,7 +163,7 @@ class ApiFlowE2ETest {
         long userId = createBuyer("gabriel");
 
         mockMvc.perform(post("/api/refunds")
-                        .header(ACTOR_ID, userId).header(ACTOR_ROLE, "BUYER")
+                        .with(SecurityTestSupport.jwt(String.valueOf(userId), Role.BUYER))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"orderId\":999999}"))
                 .andExpect(status().isNotFound());
@@ -177,7 +175,7 @@ class ApiFlowE2ETest {
         long userId = sellerUserId(sellerId);
         for (int i = 0; i < 2; i++) {
             mockMvc.perform(post("/api/products")
-                            .header(ACTOR_ID, userId).header(ACTOR_ROLE, "SELLER")
+                            .with(SecurityTestSupport.jwt(String.valueOf(userId), Role.SELLER))
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("{\"type\":\"PHYSICAL\",\"status\":\"PUBLISHED\",\"variants\":[]}"))
                     .andExpect(status().isOk());
@@ -188,7 +186,7 @@ class ApiFlowE2ETest {
                         .param("page", "0")
                         .param("size", "1")
                         .param("sort", "id,desc")
-                        .header(ACTOR_ID, userId).header(ACTOR_ROLE, "BUYER"))
+                        .with(SecurityTestSupport.jwt(String.valueOf(userId), Role.BUYER)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content.length()").value(1))
                 .andExpect(jsonPath("$.page").value(0))
@@ -203,14 +201,14 @@ class ApiFlowE2ETest {
 
         mockMvc.perform(get("/api/products/published")
                         .param("size", "500")
-                        .header(ACTOR_ID, userId).header(ACTOR_ROLE, "BUYER"))
+                        .with(SecurityTestSupport.jwt(String.valueOf(userId), Role.BUYER)))
                 .andExpect(status().isBadRequest());
     }
 
     private long registerSeller(String name) throws Exception {
         String unique = name + System.nanoTime();
         JsonNode body = bodyOf(mockMvc.perform(post("/api/sellers")
-                        .header(ACTOR_ID, "1").header(ACTOR_ROLE, "ADMINISTRATOR")
+                        .with(SecurityTestSupport.jwt("1", Role.ADMINISTRATOR))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"fullName\":\"" + name + "\",\"email\":\"" + unique
                                 + "@nexusmarket.com\",\"identityDocument\":\"" + unique + "\"}"))
@@ -221,7 +219,7 @@ class ApiFlowE2ETest {
 
     private long sellerUserId(long sellerId) throws Exception {
         return bodyOf(mockMvc.perform(get("/api/sellers/" + sellerId)
-                        .header(ACTOR_ID, "1").header(ACTOR_ROLE, "ADMINISTRATOR"))
+                        .with(SecurityTestSupport.jwt("1", Role.ADMINISTRATOR)))
                 .andReturn()).get("userId").asLong();
     }
 

@@ -15,13 +15,17 @@ import com.nexusmarket.domain.warehouse.Warehouse;
 import com.nexusmarket.domain.warehouse.WarehouseType;
 import com.nexusmarket.infrastructure.web.ActorContextArgumentResolver;
 import com.nexusmarket.infrastructure.web.WebMvcConfig;
+import com.nexusmarket.infrastructure.security.SecurityConfig;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 /**
@@ -30,7 +34,8 @@ import org.springframework.test.web.servlet.MockMvc;
  * <p>Fase 2.1 of docs/PLAN_API_WEB.md.</p>
  */
 @WebMvcTest(WarehouseController.class)
-@Import({WebMvcConfig.class, ActorContextArgumentResolver.class})
+@ActiveProfiles("test")
+@Import({WebMvcConfig.class, ActorContextArgumentResolver.class, SecurityConfig.class})
 class WarehouseControllerTest {
 
     @Autowired
@@ -63,8 +68,7 @@ class WarehouseControllerTest {
                 .willReturn(warehouse());
 
         mockMvc.perform(post("/api/warehouses")
-                        .header(ActorContextArgumentResolver.HEADER_ACTOR_ID, "1")
-                        .header(ActorContextArgumentResolver.HEADER_ACTOR_ROLE, "ADMINISTRATOR")
+                        .with(SecurityTestSupport.jwt("1", Role.ADMINISTRATOR))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"type\":\"SELLER\",\"sellerId\":4}"))
                 .andExpect(status().isOk())
@@ -81,8 +85,7 @@ class WarehouseControllerTest {
 
         mockMvc.perform(get("/api/warehouses")
                         .param("sellerId", "4")
-                        .header(ActorContextArgumentResolver.HEADER_ACTOR_ID, "4")
-                        .header(ActorContextArgumentResolver.HEADER_ACTOR_ROLE, "SELLER"))
+                        .with(SecurityTestSupport.jwt("4", Role.SELLER)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content[0].id").value(3))
                 .andExpect(jsonPath("$.content[0].sellerId").value(4))
@@ -92,8 +95,7 @@ class WarehouseControllerTest {
     @Test
     void registerRejectsAMissingSellerIdWithBadRequest() throws Exception {
         mockMvc.perform(post("/api/warehouses")
-                        .header(ActorContextArgumentResolver.HEADER_ACTOR_ID, "1")
-                        .header(ActorContextArgumentResolver.HEADER_ACTOR_ROLE, "ADMINISTRATOR")
+                        .with(SecurityTestSupport.jwt("1", Role.ADMINISTRATOR))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"type\":\"SELLER\"}"))
                 .andExpect(status().isBadRequest());
@@ -107,8 +109,7 @@ class WarehouseControllerTest {
                 .willReturn(marketplaceWarehouse());
 
         mockMvc.perform(post("/api/warehouses")
-                        .header(ActorContextArgumentResolver.HEADER_ACTOR_ID, "1")
-                        .header(ActorContextArgumentResolver.HEADER_ACTOR_ROLE, "ADMINISTRATOR")
+                        .with(SecurityTestSupport.jwt("1", Role.ADMINISTRATOR))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"type\":\"MARKETPLACE\"}"))
                 .andExpect(status().isOk())
@@ -120,8 +121,7 @@ class WarehouseControllerTest {
     @Test
     void registerRejectsAMarketplaceWarehouseWithSellerId() throws Exception {
         mockMvc.perform(post("/api/warehouses")
-                        .header(ActorContextArgumentResolver.HEADER_ACTOR_ID, "1")
-                        .header(ActorContextArgumentResolver.HEADER_ACTOR_ROLE, "ADMINISTRATOR")
+                        .with(SecurityTestSupport.jwt("1", Role.ADMINISTRATOR))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"type\":\"MARKETPLACE\",\"sellerId\":4}"))
                 .andExpect(status().isBadRequest());

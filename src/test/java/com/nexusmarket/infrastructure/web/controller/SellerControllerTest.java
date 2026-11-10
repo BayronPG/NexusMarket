@@ -12,12 +12,16 @@ import com.nexusmarket.domain.seller.Seller;
 import com.nexusmarket.domain.user.Role;
 import com.nexusmarket.infrastructure.web.ActorContextArgumentResolver;
 import com.nexusmarket.infrastructure.web.WebMvcConfig;
+import com.nexusmarket.infrastructure.security.SecurityConfig;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 /**
@@ -26,7 +30,8 @@ import org.springframework.test.web.servlet.MockMvc;
  * <p>Fase 2.1 of docs/PLAN_API_WEB.md.</p>
  */
 @WebMvcTest(SellerController.class)
-@Import({WebMvcConfig.class, ActorContextArgumentResolver.class})
+@ActiveProfiles("test")
+@Import({WebMvcConfig.class, ActorContextArgumentResolver.class, SecurityConfig.class})
 class SellerControllerTest {
 
     @Autowired
@@ -50,8 +55,7 @@ class SellerControllerTest {
                 .willReturn(seller());
 
         mockMvc.perform(post("/api/sellers")
-                        .header(ActorContextArgumentResolver.HEADER_ACTOR_ID, "10")
-                        .header(ActorContextArgumentResolver.HEADER_ACTOR_ROLE, "SELLER")
+                        .with(SecurityTestSupport.jwt("10", Role.SELLER))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"fullName\":\"Ada Lovelace\",\"email\":\"ada@nexus.test\","
                                 + "\"identityDocument\":\"DOC-1\"}"))
@@ -66,8 +70,7 @@ class SellerControllerTest {
                 .willReturn(seller());
 
         mockMvc.perform(get("/api/sellers/1")
-                        .header(ActorContextArgumentResolver.HEADER_ACTOR_ID, "10")
-                        .header(ActorContextArgumentResolver.HEADER_ACTOR_ROLE, "SELLER"))
+                        .with(SecurityTestSupport.jwt("10", Role.SELLER)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1))
                 .andExpect(jsonPath("$.userId").value(10));
@@ -76,8 +79,7 @@ class SellerControllerTest {
     @Test
     void registerRejectsABlankFullNameWithBadRequest() throws Exception {
         mockMvc.perform(post("/api/sellers")
-                        .header(ActorContextArgumentResolver.HEADER_ACTOR_ID, "10")
-                        .header(ActorContextArgumentResolver.HEADER_ACTOR_ROLE, "SELLER")
+                        .with(SecurityTestSupport.jwt("10", Role.SELLER))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"fullName\":\"\",\"email\":\"ada@nexus.test\","
                                 + "\"identityDocument\":\"DOC-1\"}"))

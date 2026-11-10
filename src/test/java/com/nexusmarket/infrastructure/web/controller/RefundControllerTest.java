@@ -11,12 +11,16 @@ import com.nexusmarket.domain.returns.Refund;
 import com.nexusmarket.domain.user.Role;
 import com.nexusmarket.infrastructure.web.ActorContextArgumentResolver;
 import com.nexusmarket.infrastructure.web.WebMvcConfig;
+import com.nexusmarket.infrastructure.security.SecurityConfig;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 /**
@@ -25,7 +29,8 @@ import org.springframework.test.web.servlet.MockMvc;
  * <p>Fase 2.1 of docs/PLAN_API_WEB.md.</p>
  */
 @WebMvcTest(RefundController.class)
-@Import({WebMvcConfig.class, ActorContextArgumentResolver.class})
+@ActiveProfiles("test")
+@Import({WebMvcConfig.class, ActorContextArgumentResolver.class, SecurityConfig.class})
 class RefundControllerTest {
 
     @Autowired
@@ -46,8 +51,7 @@ class RefundControllerTest {
                 .willReturn(refund);
 
         mockMvc.perform(post("/api/refunds")
-                        .header(ActorContextArgumentResolver.HEADER_ACTOR_ID, "6")
-                        .header(ActorContextArgumentResolver.HEADER_ACTOR_ROLE, "BUYER")
+                        .with(SecurityTestSupport.jwt("6", Role.BUYER))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"orderId\":8}"))
                 .andExpect(status().isOk())
@@ -58,8 +62,7 @@ class RefundControllerTest {
     @Test
     void requestRejectsAMissingOrderIdWithBadRequest() throws Exception {
         mockMvc.perform(post("/api/refunds")
-                        .header(ActorContextArgumentResolver.HEADER_ACTOR_ID, "6")
-                        .header(ActorContextArgumentResolver.HEADER_ACTOR_ROLE, "BUYER")
+                        .with(SecurityTestSupport.jwt("6", Role.BUYER))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
                 .andExpect(status().isBadRequest());

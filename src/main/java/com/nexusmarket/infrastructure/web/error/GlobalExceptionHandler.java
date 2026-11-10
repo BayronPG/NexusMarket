@@ -18,6 +18,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 /**
@@ -154,6 +155,21 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiErrorResponse> handleMissingResource(
             NoResourceFoundException exception, HttpServletRequest request) {
         return build(HttpStatus.NOT_FOUND, "Resource not found: " + exception.getResourcePath(), request);
+    }
+
+    /**
+     * A component of the web layer (for example the actor resolver) rejected
+     * the request with an explicit status.
+     *
+     * @param exception the exception carrying the status
+     * @param request   current request
+     * @return response with the declared status
+     */
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<ApiErrorResponse> handleResponseStatus(
+            ResponseStatusException exception, HttpServletRequest request) {
+        HttpStatus status = HttpStatus.valueOf(exception.getStatusCode().value());
+        return build(status, exception.getReason(), request);
     }
 
     /**

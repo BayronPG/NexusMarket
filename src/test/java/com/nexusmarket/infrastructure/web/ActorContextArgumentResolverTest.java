@@ -4,13 +4,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.nexusmarket.application.context.ActorContext;
-import com.nexusmarket.application.error.ValidationException;
 import com.nexusmarket.domain.user.Role;
+import java.time.Instant;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.MethodParameter;
-import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.web.context.request.NativeWebRequest;
-import org.springframework.web.context.request.ServletWebRequest;
+import org.springframework.web.server.ResponseStatusException;
 
 /**
  * Tests of {@link ActorContextArgumentResolver}.
@@ -34,17 +36,6 @@ class ActorContextArgumentResolverTest {
         return new MethodParameter(SampleController.class.getDeclaredMethod(method, type), 0);
     }
 
-    private NativeWebRequest request(String actorId, String role) {
-        MockHttpServletRequest servletRequest = new MockHttpServletRequest();
-        if (actorId != null) {
-            servletRequest.addHeader(ActorContextArgumentResolver.HEADER_ACTOR_ID, actorId);
-        }
-        if (role != null) {
-            servletRequest.addHeader(ActorContextArgumentResolver.HEADER_ACTOR_ROLE, role);
-        }
-        return new ServletWebRequest(servletRequest);
-    }
-
     @Test
     void supportsTheActorContextParameter() throws Exception {
         assertThat(resolver.supportsParameter(parameter("withActor", ActorContext.class))).isTrue();
@@ -56,24 +47,51 @@ class ActorContextArgumentResolverTest {
     }
 
     @Test
-    void buildsTheActorContextFromTheProvisionalHeaders() throws Exception {
+    void buildsTheActorContextFromJwt() throws Exception {
+        authenticate("25", "SELLER");
         Object resolved = resolver.resolveArgument(
-                parameter("withActor", ActorContext.class), null, request("10", "seller"), null);
+                parameter("withActor", ActorContext.class), null, null, null);
 
-        assertThat(resolved).isEqualTo(new ActorContext(10L, Role.SELLER));
+        assertThat(resolved).isEqualTo(new ActorContext(25L, Role.SELLER));
+        SecurityContextHolder.clearContext();
     }
 
     @Test
-    void rejectsAMissingHeader() throws Exception {
+    void rejectsMissingJwt() throws Exception {
+        SecurityContextHolder.clearContext();
         assertThatThrownBy(() -> resolver.resolveArgument(
-                parameter("withActor", ActorContext.class), null, request(null, "SELLER"), null))
-                .isInstanceOf(ValidationException.class);
+                parameter("withActor", ActorContext.class), null, null, null))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("401");
     }
 
     @Test
-    void rejectsAnUnknownRole() throws Exception {
+    void rejectsInvalidSubject() throws Exception {
+        authenticate("not-a-number", "SELLER");
         assertThatThrownBy(() -> resolver.resolveArgument(
-                parameter("withActor", ActorContext.class), null, request("10", "WIZARD"), null))
-                .isInstanceOf(ValidationException.class);
+                parameter("withActor", ActorContext.class), null, null, null))
+                .isInstanceOf(ResponseStatusException.class);
+        SecurityContextHolder.clearContext();
+    }
+
+    @Test
+    void rejectsUnknownRole() throws Exception {
+        authenticate("25", "WIZARD");
+        assertThatThrownBy(() -> resolver.resolveArgument(
+                parameter("withActor", ActorContext.class), null, null, null))
+                .isInstanceOf(ResponseStatusException.class);
+        SecurityContextHolder.clearContext();
+    }
+
+    private void authenticate(String subject, String role) {
+        Instant now = Instant.now();
+        Jwt jwt = Jwt.withTokenValue("token")
+                .header("alg", "HS256")
+                .subject(subject)
+                .claim("role", role)
+                .issuedAt(now)
+                .expiresAt(now.plusSeconds(60))
+                .build();
+        SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(jwt));
     }
 }

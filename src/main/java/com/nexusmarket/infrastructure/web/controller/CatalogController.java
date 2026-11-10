@@ -8,8 +8,6 @@ import com.nexusmarket.infrastructure.web.dto.ProductResponse;
 import com.nexusmarket.infrastructure.web.mapper.ProductWebMapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.Parameters;
-import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -53,14 +51,10 @@ public class CatalogController {
 
     @PostMapping
     @Operation(summary = "Registra un producto")
-    @Parameters({
-            @Parameter(name = "X-Actor-Id", in = ParameterIn.HEADER, required = true,
-                    description = "Identificador del actor (provisional, no es autenticacion)"),
-            @Parameter(name = "X-Actor-Role", in = ParameterIn.HEADER, required = true,
-                    description = "Rol del actor: BUYER, SELLER, ADMINISTRATOR, LOGISTICS_OPERATOR")})
     @ApiResponses({
+            @ApiResponse(responseCode = "401", description = "Token ausente o invalido"),
             @ApiResponse(responseCode = "200", description = "Producto registrado"),
-            @ApiResponse(responseCode = "400", description = "Cuerpo o cabeceras invalidas"),
+            @ApiResponse(responseCode = "400", description = "Cuerpo invalido"),
             @ApiResponse(responseCode = "403", description = "El rol no puede registrar productos"),
             @ApiResponse(responseCode = "404", description = "El vendedor no existe"),
             @ApiResponse(responseCode = "409", description = "Regla de negocio incumplida")})
@@ -72,14 +66,10 @@ public class CatalogController {
 
     @PatchMapping("/{productId}/status")
     @Operation(summary = "Cambia el estado de un producto")
-    @Parameters({
-            @Parameter(name = "X-Actor-Id", in = ParameterIn.HEADER, required = true,
-                    description = "Identificador del actor (provisional, no es autenticacion)"),
-            @Parameter(name = "X-Actor-Role", in = ParameterIn.HEADER, required = true,
-                    description = "Rol del actor: BUYER, SELLER, ADMINISTRATOR, LOGISTICS_OPERATOR")})
     @ApiResponses({
+            @ApiResponse(responseCode = "401", description = "Token ausente o invalido"),
             @ApiResponse(responseCode = "200", description = "Estado actualizado"),
-            @ApiResponse(responseCode = "400", description = "Cuerpo o cabeceras invalidas"),
+            @ApiResponse(responseCode = "400", description = "Cuerpo invalido"),
             @ApiResponse(responseCode = "403", description = "El rol no puede cambiar el estado"),
             @ApiResponse(responseCode = "404", description = "El producto no existe"),
             @ApiResponse(responseCode = "409", description = "Transicion de estado no permitida")})
@@ -93,14 +83,10 @@ public class CatalogController {
 
     @GetMapping("/published")
     @Operation(summary = "Lista los productos publicados")
-    @Parameters({
-            @Parameter(name = "X-Actor-Id", in = ParameterIn.HEADER, required = true,
-                    description = "Identificador del actor (provisional, no es autenticacion)"),
-            @Parameter(name = "X-Actor-Role", in = ParameterIn.HEADER, required = true,
-                    description = "Rol del actor: BUYER, SELLER, ADMINISTRATOR, LOGISTICS_OPERATOR")})
     @ApiResponses({
+            @ApiResponse(responseCode = "401", description = "Token ausente o invalido"),
             @ApiResponse(responseCode = "200", description = "Productos publicados"),
-            @ApiResponse(responseCode = "400", description = "Cabeceras de actor invalidas"),
+            @ApiResponse(responseCode = "400", description = "Solicitud invalida"),
             @ApiResponse(responseCode = "403", description = "El rol no puede consultar el catalogo")})
     public PageResponse<ProductResponse> findPublished(
             @Parameter(hidden = true) ActorContext actor,
@@ -118,14 +104,10 @@ public class CatalogController {
 
     @GetMapping("/mine")
     @Operation(summary = "Lista los productos del vendedor autenticado")
-    @Parameters({
-            @Parameter(name = "X-Actor-Id", in = ParameterIn.HEADER, required = true,
-                    description = "Identificador del actor (provisional, no es autenticacion)"),
-            @Parameter(name = "X-Actor-Role", in = ParameterIn.HEADER, required = true,
-                    description = "Rol del actor: BUYER, SELLER, ADMINISTRATOR, LOGISTICS_OPERATOR")})
     @ApiResponses({
+            @ApiResponse(responseCode = "401", description = "Token ausente o invalido"),
             @ApiResponse(responseCode = "200", description = "Productos del vendedor"),
-            @ApiResponse(responseCode = "400", description = "Cabeceras de actor invalidas"),
+            @ApiResponse(responseCode = "400", description = "Solicitud invalida"),
             @ApiResponse(responseCode = "403", description = "El rol no puede consultar sus productos"),
             @ApiResponse(responseCode = "404", description = "El vendedor no existe")})
     public PageResponse<ProductResponse> findOwn(

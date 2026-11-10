@@ -1,36 +1,27 @@
 package com.nexusmarket.infrastructure.web;
 
 import com.nexusmarket.application.context.ActorContext;
-import com.nexusmarket.application.error.ValidationException;
 import com.nexusmarket.domain.user.Role;
-import java.util.Locale;
 import org.springframework.core.MethodParameter;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Component;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.bind.support.WebDataBinderFactory;
 import org.springframework.web.context.request.NativeWebRequest;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.method.support.ModelAndViewContainer;
 
 /**
- * TEMPORARY resolution of the {@link ActorContext} from explicit HTTP headers.
+ * Resolves the {@link ActorContext} from the authenticated JWT.
  *
- * <p>Fase 2.5 of docs/PLAN_API_WEB.md (section 5). Spring Security is not part
- * of this evidence, so the controllers receive the actor from the
- * {@code X-Actor-Id} and {@code X-Actor-Role} headers.</p>
- *
- * <p><strong>This is NOT authentication.</strong> The caller declares its own
- * identity and nothing verifies it: the value object is built as-is, which is
- * consistent with the declared limitation D-019 (RG-01 assumed, not verified).
- * The real authentication belongs to the security evidence.</p>
+ * <p>The resource server validates the token; this resolver maps its claims
+ * into the application value object.</p>
  */
 @Component
 public class ActorContextArgumentResolver implements HandlerMethodArgumentResolver {
-
-    /** Provisional header that carries the identifier of the user. */
-    public static final String HEADER_ACTOR_ID = "X-Actor-Id";
-
-    /** Provisional header that carries the single role of the user (RG-02). */
-    public static final String HEADER_ACTOR_ROLE = "X-Actor-Role";
 
     @Override
     public boolean supportsParameter(MethodParameter parameter) {
@@ -43,21 +34,32 @@ public class ActorContextArgumentResolver implements HandlerMethodArgumentResolv
             ModelAndViewContainer mavContainer,
             NativeWebRequest webRequest,
             WebDataBinderFactory binderFactory) {
-        String rawId = webRequest.getHeader(HEADER_ACTOR_ID);
-        String rawRole = webRequest.getHeader(HEADER_ACTOR_ROLE);
-        if (rawId == null || rawId.isBlank() || rawRole == null || rawRole.isBlank()) {
-            throw new ValidationException(
-                    HEADER_ACTOR_ID + " and " + HEADER_ACTOR_ROLE + " headers are required (RG-01)");
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !(authentication.getPrincipal() instanceof Jwt jwt)) {
+            throw unauthorized("JWT authentication is required");
         }
-        // Fase 2.4: malformed headers are translated to 400 by GlobalExceptionHandler.
-        return new ActorContext(Long.valueOf(rawId.trim()), parseRole(rawRole.trim()));
+        try {
+            long userId = Long.parseLong(jwt.getSubject());
+            if (userId <= 0) {
+                throw unauthorized("JWT subject must be a positive numeric ID");
+            }
+            return new ActorContext(userId, parseRole(jwt.getClaimAsString("role")));
+        } catch (NumberFormatException | NullPointerException ex) {
+            throw unauthorized("JWT subject must be a positive numeric ID");
+        }
     }
 
     private Role parseRole(String rawRole) {
         try {
-            return Role.valueOf(rawRole.toUpperCase(Locale.ROOT));
-        } catch (IllegalArgumentException ex) {
-            throw new ValidationException(HEADER_ACTOR_ROLE + " is not a known role: " + rawRole);
+            // The decoder already rejected unknown roles; keep the claim exact
+            // so a lowercase value can never be accepted by accident.
+            return Role.valueOf(rawRole);
+        } catch (IllegalArgumentException | NullPointerException ex) {
+            throw unauthorized("JWT role is not a known role");
         }
+    }
+
+    private ResponseStatusException unauthorized(String message) {
+        return new ResponseStatusException(HttpStatus.UNAUTHORIZED, message);
     }
 }

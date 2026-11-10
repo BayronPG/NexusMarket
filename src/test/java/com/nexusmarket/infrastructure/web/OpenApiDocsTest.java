@@ -1,6 +1,5 @@
 package com.nexusmarket.infrastructure.web;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -11,11 +10,10 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.MvcResult;
 
 /**
- * Verifies that springdoc publishes the OpenAPI document and that the actor
- * headers documented in the controllers reach the generated paths.
+ * Verifies that springdoc publishes the OpenAPI document with the JWT bearer
+ * scheme as the global security requirement.
  *
  * <p>Fase 2.6 of docs/PLAN_API_WEB.md.</p>
  */
@@ -28,17 +26,17 @@ class OpenApiDocsTest {
     private MockMvc mockMvc;
 
     @Test
-    void apiDocsExposeTheDocumentedPathsAndActorHeaders() throws Exception {
-        MvcResult result = mockMvc.perform(get("/v3/api-docs"))
+    void apiDocsExposeTheDocumentedPathsAndBearerScheme() throws Exception {
+        mockMvc.perform(get("/v3/api-docs"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.info.title").value("NexusMarket API"))
                 .andExpect(jsonPath("$.paths['/api/products'].post").exists())
                 .andExpect(jsonPath("$.paths['/api/orders/{orderId}'].get").exists())
                 .andExpect(jsonPath("$.paths['/api/warehouses'].get").exists())
-                .andReturn();
-
-        String body = result.getResponse().getContentAsString();
-        assertThat(body).contains("X-Actor-Id", "X-Actor-Role");
+                .andExpect(jsonPath("$.components.securitySchemes.bearerAuth.type").value("http"))
+                .andExpect(jsonPath("$.components.securitySchemes.bearerAuth.scheme").value("bearer"))
+                .andExpect(jsonPath("$.components.securitySchemes.bearerAuth.bearerFormat").value("JWT"))
+                .andExpect(jsonPath("$.security[0].bearerAuth").exists());
     }
 
     @Test

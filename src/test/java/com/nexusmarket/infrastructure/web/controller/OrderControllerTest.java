@@ -14,12 +14,16 @@ import com.nexusmarket.domain.order.OrderStatus;
 import com.nexusmarket.domain.user.Role;
 import com.nexusmarket.infrastructure.web.ActorContextArgumentResolver;
 import com.nexusmarket.infrastructure.web.WebMvcConfig;
+import com.nexusmarket.infrastructure.security.SecurityConfig;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 /**
@@ -28,7 +32,8 @@ import org.springframework.test.web.servlet.MockMvc;
  * <p>Fase 2.1 of docs/PLAN_API_WEB.md.</p>
  */
 @WebMvcTest(OrderController.class)
-@Import({WebMvcConfig.class, ActorContextArgumentResolver.class})
+@ActiveProfiles("test")
+@Import({WebMvcConfig.class, ActorContextArgumentResolver.class, SecurityConfig.class})
 class OrderControllerTest {
 
     @Autowired
@@ -47,8 +52,7 @@ class OrderControllerTest {
                 .willReturn(order(OrderStatus.CART));
 
         mockMvc.perform(post("/api/orders")
-                        .header(ActorContextArgumentResolver.HEADER_ACTOR_ID, "6")
-                        .header(ActorContextArgumentResolver.HEADER_ACTOR_ROLE, "BUYER"))
+                        .with(SecurityTestSupport.jwt("6", Role.BUYER)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(5))
                 .andExpect(jsonPath("$.status").value("CART"));
@@ -61,8 +65,7 @@ class OrderControllerTest {
                 .willReturn(order(OrderStatus.PAID));
 
         mockMvc.perform(patch("/api/orders/5/status")
-                        .header(ActorContextArgumentResolver.HEADER_ACTOR_ID, "6")
-                        .header(ActorContextArgumentResolver.HEADER_ACTOR_ROLE, "BUYER")
+                        .with(SecurityTestSupport.jwt("6", Role.BUYER))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"status\":\"PAID\"}"))
                 .andExpect(status().isOk())
@@ -75,8 +78,7 @@ class OrderControllerTest {
                 .willReturn(order(OrderStatus.SHIPPED));
 
         mockMvc.perform(get("/api/orders/5")
-                        .header(ActorContextArgumentResolver.HEADER_ACTOR_ID, "6")
-                        .header(ActorContextArgumentResolver.HEADER_ACTOR_ROLE, "BUYER"))
+                        .with(SecurityTestSupport.jwt("6", Role.BUYER)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(5))
                 .andExpect(jsonPath("$.buyerId").value(6))
@@ -86,8 +88,7 @@ class OrderControllerTest {
     @Test
     void changeStatusRejectsAMissingStatusWithBadRequest() throws Exception {
         mockMvc.perform(patch("/api/orders/5/status")
-                        .header(ActorContextArgumentResolver.HEADER_ACTOR_ID, "6")
-                        .header(ActorContextArgumentResolver.HEADER_ACTOR_ROLE, "BUYER")
+                        .with(SecurityTestSupport.jwt("6", Role.BUYER))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
                 .andExpect(status().isBadRequest());
