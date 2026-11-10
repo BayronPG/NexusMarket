@@ -21,7 +21,8 @@ public final class ProductWebMapper {
         if (request == null) {
             return null;
         }
-        return new RegisterProductCommand(request.type(), request.status(), request.variants());
+        return new RegisterProductCommand(
+                request.type(), request.status(), request.variants(), request.price());
     }
 
     public static ProductResponse toResponse(Product product) {
@@ -33,7 +34,8 @@ public final class ProductWebMapper {
                 product.getSellerId(),
                 product.getType(),
                 product.getVariants(),
-                product.getStatus());
+                product.getStatus(),
+                product.getPrice());
     }
 
     public static List<ProductResponse> toResponses(List<Product> products) {

@@ -67,6 +67,15 @@ class CatalogServiceTest {
     }
 
     @Test
+    void sellerRegistersTheProductPrice() {
+        Product product = service.registerProduct(seller,
+                new RegisterProductCommand(ProductType.PHYSICAL, ProductStatus.PUBLISHED,
+                        List.of("blue"), new java.math.BigDecimal("19.90")));
+
+        assertThat(product.getPrice()).isEqualByComparingTo("19.90");
+    }
+
+    @Test
     void onlySellersRegisterProducts() {
         assertThatThrownBy(() -> service.registerProduct(buyer,
                 new RegisterProductCommand(ProductType.DIGITAL, ProductStatus.PUBLISHED, null)))

@@ -1,7 +1,12 @@
 package com.nexusmarket.domain.order;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.ArrayList;
 import java.util.EnumMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * Order of the NexusMarket platform.
@@ -11,8 +16,8 @@ import java.util.Map;
  * (OBJ-08).</p>
  *
  * <p>INTERPRETATION: {@code buyerId} links the order to the buyer who made
- * it. The content of the order (items, quantities, prices) is PENDING: the
- * specification does not describe order lines.</p>
+ * it. The content of the order is modeled as lines with product, quantity and
+ * a unit-price snapshot; the specification does not describe order lines.</p>
  *
  * <p>Business rules enforced here: only the defined lifecycle transitions
  * are allowed (RN-16) and a finalized order cannot be modified (RN-13).</p>
@@ -29,6 +34,9 @@ public class Order {
 
     /** Current lifecycle status. */
     private OrderStatus status;
+
+    /** Lines of the order; only editable while the order is in CART. */
+    private List<OrderItem> items = new ArrayList<>();
 
     /** Allowed transitions defined by the specification (RN-16). */
     private static final Map<OrderStatus, OrderStatus> ALLOWED_TRANSITIONS = new EnumMap<>(OrderStatus.class);
@@ -47,6 +55,11 @@ public class Order {
         this.id = id;
         this.buyerId = buyerId;
         this.status = status;
+    }
+
+    public Order(Long id, Long buyerId, OrderStatus status, List<OrderItem> items) {
+        this(id, buyerId, status);
+        setItems(items);
     }
 
     public Long getId() {
@@ -69,6 +82,82 @@ public class Order {
         return status;
     }
 
+    public List<OrderItem> getItems() {
+        return items;
+    }
+
+    /**
+     * Replaces the lines, used when the order is hydrated from persistence.
+     *
+     * @param items loaded lines; null means an empty order
+     */
+    public void setItems(List<OrderItem> items) {
+        this.items = items == null ? new ArrayList<>() : new ArrayList<>(items);
+    }
+
+    /**
+     * Adds a line, or increases the quantity when the product is already
+     * present. Lines can only be modified while the order is in CART.
+     *
+     * @param item line to add
+     * @return the stored line (the existing one when the product was repeated)
+     * @throws IllegalStateException if the order is not in CART
+     */
+    public OrderItem addItem(OrderItem item) {
+        requireCart();
+        Optional<OrderItem> existing = findByProductId(item.getProductId());
+        if (existing.isPresent()) {
+            existing.get().increase(item.getQuantity());
+            return existing.get();
+        }
+        item.setOrderId(id);
+        items.add(item);
+        return item;
+    }
+
+    /**
+     * Removes a line.
+     *
+     * @param itemId identifier of the line
+     * @return {@code true} when the line existed
+     * @throws IllegalStateException if the order is not in CART
+     */
+    public boolean removeItem(Long itemId) {
+        requireCart();
+        return items.removeIf(item -> itemId != null && itemId.equals(item.getId()));
+    }
+
+    /** Finds a line by product. */
+    public Optional<OrderItem> findByProductId(Long productId) {
+        return items.stream()
+                .filter(item -> productId != null && productId.equals(item.getProductId()))
+                .findFirst();
+    }
+
+    /** Finds a line by its identifier. */
+    public Optional<OrderItem> findItem(Long itemId) {
+        return items.stream()
+                .filter(item -> itemId != null && itemId.equals(item.getId()))
+                .findFirst();
+    }
+
+    /** Whether the order has at least one line. */
+    public boolean hasItems() {
+        return !items.isEmpty();
+    }
+
+    /**
+     * Total of the order: sum of the line subtotals.
+     *
+     * @return total with two decimals
+     */
+    public BigDecimal total() {
+        return items.stream()
+                .map(OrderItem::subtotal)
+                .reduce(BigDecimal.ZERO, BigDecimal::add)
+                .setScale(OrderItem.PRICE_SCALE, RoundingMode.HALF_UP);
+    }
+
     /**
      * Changes the order status only through the allowed lifecycle (RN-16).
      *
@@ -86,5 +175,11 @@ public class Order {
                     "Transition not allowed: " + status + " -> " + next + " (RN-16)");
         }
         this.status = next;
+    }
+
+    private void requireCart() {
+        if (status != OrderStatus.CART) {
+            throw new IllegalStateException("Items can only be modified while the order is in CART");
+        }
     }
 }

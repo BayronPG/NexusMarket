@@ -51,6 +51,7 @@ public class CatalogService implements ManageCatalogUseCase {
         product.setSellerId(seller.getId());
         product.setType(command.type());
         product.setStatus(command.status());
+        product.setPrice(command.price());
         if (command.variants() != null) {
             product.setVariants(new ArrayList<>(command.variants()));
         }

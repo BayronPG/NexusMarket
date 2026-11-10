@@ -6,6 +6,7 @@ import com.nexusmarket.application.query.PageResult;
 import com.nexusmarket.domain.catalog.Product;
 import com.nexusmarket.domain.catalog.ProductStatus;
 import com.nexusmarket.domain.catalog.ProductType;
+import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -25,8 +26,15 @@ public interface ManageCatalogUseCase {
      * @param type     required; physical or digital (RN-06)
      * @param status   required publication status
      * @param variants optional differences such as color, size or model
+     * @param price    optional current price; null means zero (D-PRICE)
      */
-    record RegisterProductCommand(ProductType type, ProductStatus status, List<String> variants) {
+    record RegisterProductCommand(ProductType type, ProductStatus status, List<String> variants,
+                                  BigDecimal price) {
+
+        /** Backward-compatible constructor without price. */
+        public RegisterProductCommand(ProductType type, ProductStatus status, List<String> variants) {
+            this(type, status, variants, null);
+        }
     }
 
     /**

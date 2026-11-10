@@ -17,6 +17,15 @@ public interface OrderRepository {
     /** Finds an order by its identifier. */
     Optional<Order> findById(Long id);
 
+    /**
+     * Finds and locks an order for update.
+     *
+     * <p>The JPA adapter takes a pessimistic write lock, so the caller must run
+     * inside a transaction. Used by the status change to serialize concurrent
+     * payments of the same order.</p>
+     */
+    Optional<Order> findByIdForUpdate(Long id);
+
     /** Lists the orders created by a buyer. */
     List<Order> findByBuyerId(Long buyerId);
 }

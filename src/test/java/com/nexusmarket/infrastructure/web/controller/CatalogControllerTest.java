@@ -124,4 +124,13 @@ class CatalogControllerTest {
                         .content("{\"type\":\"PHYSICAL\"}"))
                 .andExpect(status().isBadRequest());
     }
+
+    @Test
+    void registerRejectsANonPositivePrice() throws Exception {
+        mockMvc.perform(post("/api/products")
+                        .with(SecurityTestSupport.jwt("2", Role.SELLER))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"type\":\"PHYSICAL\",\"status\":\"PUBLISHED\",\"price\":0}"))
+                .andExpect(status().isBadRequest());
+    }
 }

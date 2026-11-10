@@ -45,7 +45,7 @@ class WebMapperTest {
     @Test
     void productMapperConvertsCommandAndResponse() {
         CreateProductRequest request = new CreateProductRequest(
-                ProductType.PHYSICAL, ProductStatus.PUBLISHED, List.of("Color: negro"));
+                ProductType.PHYSICAL, ProductStatus.PUBLISHED, List.of("Color: negro"), null);
 
         RegisterProductCommand command = ProductWebMapper.toCommand(request);
         assertThat(command.type()).isEqualTo(ProductType.PHYSICAL);
@@ -61,7 +61,8 @@ class WebMapperTest {
 
         ProductResponse response = ProductWebMapper.toResponse(product);
         assertThat(response).isEqualTo(new ProductResponse(
-                1L, 2L, ProductType.PHYSICAL, List.of("Color: negro"), ProductStatus.PUBLISHED));
+                1L, 2L, ProductType.PHYSICAL, List.of("Color: negro"), ProductStatus.PUBLISHED,
+                new java.math.BigDecimal("0.00")));
         assertThat(ProductWebMapper.toResponses(List.of(product))).hasSize(1);
     }
 
@@ -99,7 +100,8 @@ class WebMapperTest {
     void orderMapperConvertsTheResponse() {
         OrderResponse response = OrderWebMapper.toResponse(new Order(5L, 6L, OrderStatus.PAID));
 
-        assertThat(response).isEqualTo(new OrderResponse(5L, 6L, OrderStatus.PAID));
+        assertThat(response).isEqualTo(new OrderResponse(
+                5L, 6L, OrderStatus.PAID, List.of(), new java.math.BigDecimal("0.00")));
     }
 
     @Test

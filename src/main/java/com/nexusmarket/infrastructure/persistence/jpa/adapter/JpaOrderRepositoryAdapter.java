@@ -42,6 +42,11 @@ public class JpaOrderRepositoryAdapter implements OrderRepository {
     }
 
     @Override
+    public Optional<Order> findByIdForUpdate(Long id) {
+        return springDataOrderRepository.findByIdForUpdate(id).map(OrderJpaMapper::toDomain);
+    }
+
+    @Override
     public List<Order> findByBuyerId(Long buyerId) {
         return springDataOrderRepository.findByBuyerId(buyerId).stream()
                 .map(OrderJpaMapper::toDomain)

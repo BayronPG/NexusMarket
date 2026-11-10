@@ -68,6 +68,20 @@ public class JpaInventoryRepositoryAdapter implements InventoryRepository {
     }
 
     @Override
+    public List<Inventory> findByProductId(Long productId) {
+        return springDataInventoryRepository.findByProductIdOrderByIdAsc(productId).stream()
+                .map(InventoryJpaMapper::toDomain)
+                .toList();
+    }
+
+    @Override
+    public List<Inventory> lockByProductId(Long productId) {
+        return springDataInventoryRepository.lockByProductId(productId).stream()
+                .map(InventoryJpaMapper::toDomain)
+                .toList();
+    }
+
+    @Override
     public List<Inventory> findAll() {
         return springDataInventoryRepository.findAll().stream()
                 .map(InventoryJpaMapper::toDomain)

@@ -2,7 +2,9 @@ package com.nexusmarket.infrastructure.web.dto;
 
 import com.nexusmarket.domain.catalog.ProductStatus;
 import com.nexusmarket.domain.catalog.ProductType;
+import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotNull;
+import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -15,9 +17,12 @@ import java.util.List;
  * @param type     physical or digital product
  * @param status   publication status
  * @param variants differences such as colour, size or model
+ * @param price    current price; optional, zero by default (D-PRICE)
  */
 public record CreateProductRequest(
         @NotNull ProductType type,
         @NotNull ProductStatus status,
-        List<String> variants) {
+        List<String> variants,
+        @DecimalMin(value = "0.01", message = "price must be positive when provided")
+        BigDecimal price) {
 }

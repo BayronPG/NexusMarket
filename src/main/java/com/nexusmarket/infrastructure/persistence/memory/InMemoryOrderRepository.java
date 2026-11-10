@@ -39,6 +39,13 @@ public class InMemoryOrderRepository implements OrderRepository {
     }
 
     @Override
+    public Optional<Order> findByIdForUpdate(Long id) {
+        // The memory profile is single-node and used by tests only; the JPA
+        // adapter is the one that takes a real database lock.
+        return findById(id);
+    }
+
+    @Override
     public List<Order> findByBuyerId(Long buyerId) {
         return store.values().stream()
                 .filter(order -> buyerId != null && buyerId.equals(order.getBuyerId()))

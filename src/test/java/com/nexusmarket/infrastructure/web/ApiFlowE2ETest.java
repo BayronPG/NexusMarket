@@ -98,26 +98,126 @@ class ApiFlowE2ETest {
     }
 
     @Test
-    void orderIsCreatedReadAndAdvancedThroughItsLifecycle() throws Exception {
+    void anEmptyOrderCannotAdvanceToPendingPayment() throws Exception {
         long userId = createBuyer("carlos");
 
         long orderId = bodyOf(mockMvc.perform(post("/api/orders")
                         .with(SecurityTestSupport.jwt(String.valueOf(userId), Role.BUYER)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("CART"))
+                .andExpect(jsonPath("$.items").isEmpty())
+                .andExpect(jsonPath("$.total").value(0.00))
                 .andReturn()).get("id").asLong();
 
         mockMvc.perform(get("/api/orders/" + orderId)
                         .with(SecurityTestSupport.jwt(String.valueOf(userId), Role.BUYER)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("CART"));
+                .andExpect(jsonPath("$.status").value("CART"))
+                .andExpect(jsonPath("$.items").isEmpty());
 
         mockMvc.perform(patch("/api/orders/" + orderId + "/status")
                         .with(SecurityTestSupport.jwt(String.valueOf(userId), Role.BUYER))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"status\":\"PENDING_PAYMENT\"}"))
+                .andExpect(status().isConflict());
+    }
+
+    @Test
+    void cartItemsAreAddedPaidAndTheInventoryIsDeductedOnce() throws Exception {
+        long sellerId = registerSeller("helena");
+        long sellerUserId = sellerUserId(sellerId);
+        long warehouseId = bodyOf(mockMvc.perform(post("/api/warehouses")
+                        .with(SecurityTestSupport.jwt("1", Role.ADMINISTRATOR))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"type\":\"SELLER\",\"sellerId\":" + sellerId + "}"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("PENDING_PAYMENT"));
+                .andReturn()).get("id").asLong();
+
+        long productId = bodyOf(mockMvc.perform(post("/api/products")
+                        .with(SecurityTestSupport.jwt(String.valueOf(sellerUserId), Role.SELLER))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"type\":\"PHYSICAL\",\"status\":\"PUBLISHED\",\"variants\":[],"
+                                + "\"price\":25.50}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.price").value(25.50))
+                .andReturn()).get("id").asLong();
+
+        mockMvc.perform(post("/api/inventories")
+                        .with(SecurityTestSupport.jwt(String.valueOf(sellerUserId), Role.SELLER))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"productId\":" + productId + ",\"warehouseId\":" + warehouseId
+                                + ",\"quantity\":10}"))
+                .andExpect(status().isOk());
+
+        long buyerUserId = createBuyer("ivan");
+        long orderId = bodyOf(mockMvc.perform(post("/api/orders")
+                        .with(SecurityTestSupport.jwt(String.valueOf(buyerUserId), Role.BUYER)))
+                .andReturn()).get("id").asLong();
+
+        long itemId = bodyOf(mockMvc.perform(post("/api/orders/" + orderId + "/items")
+                        .with(SecurityTestSupport.jwt(String.valueOf(buyerUserId), Role.BUYER))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"productId\":" + productId + ",\"quantity\":2}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items.length()").value(1))
+                .andExpect(jsonPath("$.items[0].unitPrice").value(25.50))
+                .andExpect(jsonPath("$.items[0].subtotal").value(51.00))
+                .andExpect(jsonPath("$.total").value(51.00))
+                .andReturn()).get("items").get(0).get("id").asLong();
+
+        mockMvc.perform(post("/api/orders/" + orderId + "/items")
+                        .with(SecurityTestSupport.jwt(String.valueOf(buyerUserId), Role.BUYER))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"productId\":" + productId + ",\"quantity\":1}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items.length()").value(1))
+                .andExpect(jsonPath("$.items[0].quantity").value(3))
+                .andExpect(jsonPath("$.total").value(76.50));
+
+        mockMvc.perform(patch("/api/orders/" + orderId + "/items/" + itemId)
+                        .with(SecurityTestSupport.jwt(String.valueOf(buyerUserId), Role.BUYER))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"quantity\":4}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.total").value(102.00));
+
+        mockMvc.perform(patch("/api/orders/" + orderId + "/status")
+                        .with(SecurityTestSupport.jwt(String.valueOf(buyerUserId), Role.BUYER))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"status\":\"PENDING_PAYMENT\"}"))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(patch("/api/orders/" + orderId + "/status")
+                        .with(SecurityTestSupport.jwt(String.valueOf(buyerUserId), Role.BUYER))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"status\":\"PAID\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("PAID"));
+
+        mockMvc.perform(patch("/api/orders/" + orderId + "/status")
+                        .with(SecurityTestSupport.jwt(String.valueOf(buyerUserId), Role.BUYER))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"status\":\"PAID\"}"))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/inventories")
+                        .param("productId", String.valueOf(productId))
+                        .with(SecurityTestSupport.jwt(String.valueOf(sellerUserId), Role.SELLER)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].quantity").value(6));
+
+        long otherBuyerUserId = createBuyer("julia");
+        mockMvc.perform(post("/api/orders/" + orderId + "/items")
+                        .with(SecurityTestSupport.jwt(String.valueOf(otherBuyerUserId), Role.BUYER))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"productId\":" + productId + ",\"quantity\":1}"))
+                .andExpect(status().isForbidden());
+
+        mockMvc.perform(post("/api/orders/" + orderId + "/items")
+                        .with(SecurityTestSupport.jwt(String.valueOf(sellerUserId), Role.SELLER))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"productId\":" + productId + ",\"quantity\":1}"))
+                .andExpect(status().isForbidden());
     }
 
     @Test

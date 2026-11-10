@@ -65,6 +65,21 @@ public class InMemoryInventoryRepository implements InventoryRepository {
     }
 
     @Override
+    public List<Inventory> findByProductId(Long productId) {
+        return store.values().stream()
+                .filter(inventory -> productId != null && productId.equals(inventory.getProductId()))
+                .sorted(Comparator.comparing(Inventory::getId))
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<Inventory> lockByProductId(Long productId) {
+        // The memory profile is single-node and used by tests only; the JPA
+        // adapter is the one that takes a real database lock.
+        return findByProductId(productId);
+    }
+
+    @Override
     public List<Inventory> findAll() {
         return List.copyOf(store.values());
     }

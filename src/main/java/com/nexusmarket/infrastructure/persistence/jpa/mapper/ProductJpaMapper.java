@@ -27,6 +27,7 @@ public final class ProductJpaMapper {
                 ? new ArrayList<>()
                 : new ArrayList<>(product.getVariants()));
         entity.setStatus(product.getStatus());
+        entity.setPrice(product.getPrice());
         return entity;
     }
 
@@ -42,6 +43,7 @@ public final class ProductJpaMapper {
                 ? new ArrayList<>()
                 : new ArrayList<>(entity.getVariants()));
         product.setStatus(entity.getStatus());
+        product.setPrice(entity.getPrice());
         return product;
     }
 }

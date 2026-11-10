@@ -25,6 +25,18 @@ public interface InventoryRepository {
     /** Lists the stock of a product across the warehouses, optionally filtered by warehouse. */
     PageResult<Inventory> findByProductId(Long productId, Long warehouseId, PageQuery query);
 
+    /** Lists the stock records of a product, ordered by identifier. */
+    List<Inventory> findByProductId(Long productId);
+
+    /**
+     * Locks and lists the stock records of a product, ordered by identifier.
+     *
+     * <p>The JPA adapter takes a pessimistic write lock, so the caller must run
+     * inside a transaction. Used by the payment step to deduct stock without
+     * overselling.</p>
+     */
+    List<Inventory> lockByProductId(Long productId);
+
     /** Lists every stored inventory record. */
     List<Inventory> findAll();
 }

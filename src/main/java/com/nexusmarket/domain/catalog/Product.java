@@ -2,6 +2,8 @@ package com.nexusmarket.domain.catalog;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 
 /**
  * Product offered in the NexusMarket catalog.
@@ -12,8 +14,9 @@ import java.util.List;
  *
  * <p>INTERPRETATION: {@code sellerId} is present because the seller
  * registers and administers "sus productos" (matriz de responsabilidades).
- * Other typical product attributes (name, price, description...) are NOT in
- * the specification and are intentionally omitted (PENDING).</p>
+ * The specification does not describe the price, but the order increment needs
+ * a current price to snapshot into the order lines (decision D-PRICE). Other
+ * typical attributes (name, description...) remain intentionally omitted.</p>
  *
  * <p>Business rules: physical products require inventory and shipping
  * (RN-07); digital products are delivered immediately after payment
@@ -38,6 +41,9 @@ public class Product {
     /** Publication status; required. */
     private ProductStatus status;
 
+    /** Current price; INTERPRETATION (D-PRICE). Zero means "not sellable yet". */
+    private BigDecimal price = BigDecimal.ZERO.setScale(2);
+
     public Product() {
     }
 
@@ -45,6 +51,11 @@ public class Product {
         this.id = id;
         this.type = type;
         this.status = status;
+    }
+
+    public Product(Long id, ProductType type, ProductStatus status, BigDecimal price) {
+        this(id, type, status);
+        setPrice(price);
     }
 
     public Long getId() {
@@ -85,6 +96,24 @@ public class Product {
 
     public void setStatus(ProductStatus status) {
         this.status = status;
+    }
+
+    public BigDecimal getPrice() {
+        return price;
+    }
+
+    /**
+     * Sets the current price; null means zero and negative values are rejected.
+     *
+     * @param price new price
+     * @throws IllegalArgumentException if the price is negative
+     */
+    public void setPrice(BigDecimal price) {
+        BigDecimal value = price == null ? BigDecimal.ZERO : price;
+        if (value.signum() < 0) {
+            throw new IllegalArgumentException("The price of a product can never be negative");
+        }
+        this.price = value.setScale(2, RoundingMode.HALF_UP);
     }
 
     /** Whether the product is physical (RN-07). */

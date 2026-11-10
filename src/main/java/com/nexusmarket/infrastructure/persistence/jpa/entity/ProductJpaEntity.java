@@ -14,6 +14,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.Table;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -55,6 +56,9 @@ public class ProductJpaEntity {
     @Column(name = "status")
     private ProductStatus status;
 
+    @Column(name = "price", nullable = false, precision = 12, scale = 2)
+    private BigDecimal price = BigDecimal.ZERO.setScale(2);
+
     public Long getId() {
         return id;
     }
@@ -93,5 +97,13 @@ public class ProductJpaEntity {
 
     public void setStatus(ProductStatus status) {
         this.status = status;
+    }
+
+    public BigDecimal getPrice() {
+        return price;
+    }
+
+    public void setPrice(BigDecimal price) {
+        this.price = price;
     }
 }

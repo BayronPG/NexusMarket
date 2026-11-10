@@ -2,6 +2,7 @@ package com.nexusmarket.infrastructure.web.dto;
 
 import com.nexusmarket.domain.catalog.ProductStatus;
 import com.nexusmarket.domain.catalog.ProductType;
+import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -14,11 +15,13 @@ import java.util.List;
  * @param type     physical or digital product
  * @param variants differences such as colour, size or model
  * @param status   publication status
+ * @param price    current price
  */
 public record ProductResponse(
         Long id,
         Long sellerId,
         ProductType type,
         List<String> variants,
-        ProductStatus status) {
+        ProductStatus status,
+        BigDecimal price) {
 }
