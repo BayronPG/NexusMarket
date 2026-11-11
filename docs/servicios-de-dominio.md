@@ -254,13 +254,13 @@ sincronización documental `e7d2c1e`):
 | **8 mappers** dominio ↔ JPA (`infrastructure/persistence/jpa/mapper/`) | Implementado y probado |
 | **8 repositorios Spring Data** y **8 adaptadores JPA** de los puertos de salida (`infrastructure/persistence/jpa/repository/` y `adapter/`) | Implementado y probado |
 | Esquema con Flyway (`V1__initial_schema.sql`) e `hibernate.ddl-auto=validate` | Implementado; verificación de integración en `PersistenceMysqlIntegrationTest` (tag `mysql`) |
-| Borde REST: **6 controladores, 18 endpoints**, DTO, mappers web y validación `@Valid` | Implementado y probado |
+| Borde REST: **8 controladores, 27 endpoints**, DTO, mappers web y validación `@Valid` | Implementado y probado |
 | Pedidos con ítems: `OrderItem`, precio histórico, total y descuento de inventario al pagar (V3, D-PRICE) | Implementado y probado (`OrderServiceTest`, E2E con JWT) |
 | Login con contraseña: `POST /api/auth/login`, BCrypt strength 12 y emisión JWT (V4) | Implementado y probado (`AuthenticationServiceTest`, E2E login → endpoint protegido) |
 | `ActorContext` desde JWT (resource server HS256, `Authorization: Bearer`) | Implementado y probado (`SecurityConfigTest` + tests MVC/E2E con `SecurityTestSupport`) |
 | Manejo global de errores (2.4) | Implementado y probado |
-| OpenAPI (2.6): 15 endpoints documentados y Swagger UI con `springdoc-openapi` 2.8.9 | Implementado y probado |
-| Colección Postman (2.7) y pruebas E2E (2.8) | Implementado (3 flujos con JPA/H2) |
+| OpenAPI (2.6): 27 endpoints documentados y Swagger UI con `springdoc-openapi` 2.8.9 | Implementado y probado |
+| Colección Postman (2.7) y pruebas E2E (2.8) | Implementado (flujos con JPA/H2, incluido el de sustentación) |
 | Transaccionalidad de escrituras múltiples (`SellerRegistrationService.registerSeller`) | Implementado y probado |
 | Asociaciones JPA y restricciones de BD | Columnas escalares `Long` (P-1); esquema versionado con Flyway |
 
@@ -273,3 +273,21 @@ ambos sentidos. Los adaptadores en memoria se conservan para el perfil `memory`.
 *Documento elaborado a partir de la Especificación Funcional del Negocio: NexusMarket y del modelo
 de dominio del Entregable 1. Los elementos no respaldados por la fuente se marcan como PENDIENTES
 y no se implementan.*
+
+---
+
+## 12. Envío, devolución y reembolso por ítem (2026-11-10)
+
+- **`OrderService`**: añade `shipItem` (solo el vendedor dueño del producto) y `deliverItem` (solo
+  logística). `changeOrderStatus` queda limitado al comprador para `PENDING_PAYMENT`/`PAID`; el
+  estado global se deriva de las líneas con `Order.refreshFulfillmentStatus()`.
+- **`ReturnService`**: solicitud del comprador dueño sobre una línea `DELIVERED` con cantidad
+  acumulada; aprobación del administrador; recepción de logística que, en una sola transacción,
+  repone stock, registra `InventoryMovement` tipo `RETURN` y crea el reembolso. La recepción repetida
+  devuelve el reembolso existente sin reponer dos veces.
+- **`RefundService`**: solo consultas paginadas; el reembolso ya no se solicita por endpoint, se
+  genera al recibir la devolución. `amount = cantidad × unitPrice` histórico.
+- **Puertos nuevos**: `ReturnRepository`, `InventoryMovementRepository`. `RefundRepository` cambia
+  a consultas paginadas y `findByReturnId`.
+- **Pruebas**: `SustentationFlowE2ETest`, `OrderServiceTest` y `RefundServiceTest`; `mvn -B verify`
+  → **278/278**, cobertura **87.7 % líneas / 67.1 % ramas**.

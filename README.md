@@ -22,12 +22,12 @@ NexusMarket es una plataforma digital centralizada que actúa como intermediario
 
 Incremento posterior a E2, **publicado** en `origin/main` (`46eaef3`, 2026-10-15):
 
-- **Persistencia completa (Fases 1.1–1.7)**: 8 entidades JPA, 8 mappers, 8 repositorios Spring Data y
-  **8 adaptadores JPA** de los puertos de salida; los adaptadores en memoria se conservan para pruebas
+- **Persistencia completa (Fases 1.1–1.7)**: entidades JPA, mappers, repositorios Spring Data y
+  **adaptadores JPA** de los puertos de salida; los adaptadores en memoria se conservan para pruebas
   bajo el perfil `memory`.
-- **Esquema con Flyway** (`V1`–`V3`) y `spring.jpa.hibernate.ddl-auto=validate`.
-- **Borde REST (Fases 2.1–2.4 y 2.5)**: 6 controladores sobre los 6 puertos de entrada
-  (**19 endpoints**), DTO y mappers web, validación `@Valid` (400), manejo global de errores con
+- **Esquema con Flyway** (`V1`–`V5`) y `spring.jpa.hibernate.ddl-auto=validate`.
+- **Borde REST (Fases 2.1–2.4 y 2.5)**: 8 controladores sobre los puertos de entrada
+  (**27 endpoints**), DTO y mappers web, validación `@Valid` (400), manejo global de errores con
   respuesta uniforme y `ActorContext` resuelto desde el JWT autenticado.
 - **Login (2026-11-10)**: `POST /api/auth/login` con email y contraseña; BCrypt strength 12 y JWT
   HS256 con expiración configurable. El registro público sigue fuera de alcance.
@@ -35,11 +35,12 @@ Incremento posterior a E2, **publicado** en `origin/main` (`46eaef3`, 2026-10-15
   subtotales y total; inventario descontado de forma atómica al pagar (detalle en "Pedidos con ítems").
 - **Seguridad (Unidad 4)**: resource server JWT `stateless` (HS256, secreto externo, autoridad
   `ROLE_<role>`); 401 sin token o con token inválido, 403 cuando la regla de rol del caso de uso lo impide.
-- **OpenAPI (2.6)**: los 15 endpoints documentados con `@Tag`, `@Operation` y `@ApiResponse`, con el
+- **OpenAPI (2.6)**: los 27 endpoints documentados con `@Tag`, `@Operation` y `@ApiResponse`, con el
   esquema `bearerAuth` como requisito global; `/v3/api-docs` y Swagger UI verificados con `OpenApiDocsTest`.
-- **Postman (2.7)**: `docs/postman/NexusMarket.postman_collection.json` (7 carpetas, 19 requests;
+- **Postman (2.7)**: `docs/postman/NexusMarket.postman_collection.json` (8 carpetas, 27 requests;
   el login guarda `{{jwt}}`).
-- **Pruebas end-to-end (2.8)**: tres flujos reales (catálogo, pedidos y devoluciones) en `ApiFlowE2ETest`.
+- **Pruebas end-to-end (2.8)**: `ApiFlowE2ETest` y `SustentationFlowE2ETest` cubren catálogo, pedidos,
+  envío por ítem, devolución y reembolso parcial.
 - **Pendiente**: emisión de tokens y login (fuera de esta evidencia; ver "Seguridad").
 - **Asociaciones JPA**: siguen como columnas escalares `Long` (P-1); el esquema definitivo es Flyway.
 - Plan detallado: [docs/PLAN_API_WEB.md](docs/PLAN_API_WEB.md).
@@ -81,16 +82,16 @@ NexusMarket/
     │       ├── persistence/
     │       │   ├── memory/        # Adaptadores en memoria (perfil "memory", solo pruebas)
     │       │   └── jpa/
-    │       │       ├── entity/    # 8 entidades JPA (separadas del dominio)
-    │       │       ├── mapper/    # 8 mappers dominio <-> JPA
-    │       │       ├── repository/# 8 repositorios Spring Data
-    │       │       └── adapter/   # 8 adaptadores JPA de los puertos de salida
+    │       │       ├── entity/    # entidades JPA (separadas del dominio)
+    │       │       ├── mapper/    # mappers dominio <-> JPA
+    │       │       ├── repository/# repositorios Spring Data
+    │       │       └── adapter/   # adaptadores JPA de los puertos de salida
     │       └── web/               # Adaptadores de entrada (borde REST)
-    │           ├── controller/    # 6 controladores (15 endpoints)
+    │           ├── controller/    # 8 controladores (27 endpoints)
     │           ├── dto/           # DTO de entrada y salida
     │           └── mapper/        # Mapeo dominio <-> DTO
     ├── main/resources/application.properties        # MySQL (variables de entorno)
-    ├── main/resources/db/migration/                 # Migraciones Flyway (V1__initial_schema.sql)
+    ├── main/resources/db/migration/                 # Migraciones Flyway (V1–V5)
     ├── test/java/com/nexusmarket/                   # Pruebas
     ├── test/resources/application-test.properties   # Perfil de pruebas (H2, MODE=MySQL)
     └── test/resources/application-mysql.properties  # Integración contra MySQL real
@@ -141,14 +142,15 @@ duplican.
 
 - **Base de datos real: MySQL** (D-004 resuelta por el estudiante). **MongoDB no se implementa**.
 - **Persistencia cerrada (Fases 1.1–1.7)**: los adaptadores **JPA son la implementación por defecto**
-  de los 8 puertos de salida; los `InMemory*` quedan **solo para pruebas** bajo el perfil `memory`.
-- **Esquema**: lo crea **Flyway** (`V1`–`V3`; V3 agrega `products.price` y `order_items`); Hibernate solo valida
+  de los puertos de salida; los `InMemory*` quedan **solo para pruebas** bajo el perfil `memory`.
+- **Esquema**: lo crea **Flyway** (`V1`–`V5`; V3 agrega `products.price` y `order_items`; V4 el hash
+  de contraseña; V5 el estado por ítem, devoluciones, reembolsos y movimientos); Hibernate solo valida
   (`spring.jpa.hibernate.ddl-auto=validate`).
-- **Borde REST (Fases 2.1–2.4 y 2.5)**: 7 controladores, 19 endpoints, DTO y mappers web, validación
+- **Borde REST (Fases 2.1–2.4 y 2.5)**: 8 controladores, 27 endpoints, DTO y mappers web, validación
   de entrada (`@Valid` → 400), manejo global de errores (`@RestControllerAdvice` → 400/401/403/404/409/500)
   y `ActorContext` resuelto desde los claims del JWT (Unidad 4).
-- **Evidencia 5**: 2.6 (OpenAPI de los 19 endpoints), 2.7 (colección Postman), 2.8 (pruebas E2E de
-  los tres flujos reales) y 2.9 (paginación de los cuatro listados) resueltas.
+- **Evidencia 5**: 2.6 (OpenAPI de los 27 endpoints), 2.7 (colección Postman), 2.8 (pruebas E2E de
+  los flujos reales) y 2.9 (paginación de los cuatro listados) resueltas.
 - **Autenticación (2.11)**: login con email normalizado y contraseña BCrypt; JWT HS256 compatible con
   el resource server. Sin registro público, refresh, logout, recuperación ni MFA.
 - **Pedidos con ítems (2.10)**: `POST /api/orders/{id}/items`, `PATCH`/`DELETE` de un ítem y detalle
@@ -158,12 +160,15 @@ duplican.
   `sort` (`campo` o `campo,asc|desc`); responden `content`, `page`, `size`, `totalElements` y
   `totalPages`. Filtros opcionales: `sellerId` y `status` en productos, `warehouseId` en inventario.
 - **Calidad**: JaCoCo mide en la fase `test` y `mvn verify` exige ≥ 80 % líneas y ≥ 65 % ramas
-  (actual: 88.5 % líneas y 73.5 % ramas).
+  (actual: 87.7 % líneas y 67.1 % ramas).
+- **Envío, devolución y reembolso por ítem (2.12)**: `PATCH .../items/{itemId}/ship` (vendedor dueño)
+  y `.../deliver` (logística); `POST /api/returns` + aprobación + recepción; el reembolso se genera al
+  recibir, con el precio histórico y sin pasarela de pago.
 - **Decisiones provisionales** (no definitivas): relaciones como columnas `Long` (P-1), conservar
   `@ElementCollection` (P-2), validaciones de negocio en la capa de aplicación (P-3) y precio del
   producto como atributo nuevo (**D-PRICE**, no descrito por la especificación; necesario para el
   precio histórico del pedido).
-- **Pruebas:** `mvn -B clean verify` → **269/269 verdes** (incluye `jacoco:check`); integración contra MySQL 8.0 → **10/10**.
+- **Pruebas:** `mvn -B clean verify` → **278/278 verdes** (incluye `jacoco:check`); integración contra MySQL 8.0 → **10/10**.
 - **Decisiones, supuestos y alcance real** del incremento: [docs/servicios-de-dominio.md](docs/servicios-de-dominio.md).
 - Preguntas abiertas del dominio (variantes, contenido del pedido, catálogo de estados,
   reportes): [docs/modelo-de-dominio.md](docs/modelo-de-dominio.md), sección 11.
@@ -193,6 +198,22 @@ duplican.
   descuentan dos veces; repetir `PAID` es idempotente. El descuento recorre las bodegas en orden de id.
 - **Limitaciones**: no hay pasarela de pagos ni confirmación financiera externa, no hay reserva
   temporal de stock (se descuenta al pagar) y no hay edición de precio por variante.
+
+## Envío, devolución y reembolso por ítem (2026-11-10)
+
+- **Un pedido, varios vendedores**: cada línea guarda `productId`, cantidad y precio histórico; el
+  vendedor se deriva del producto y se expone como `sellerId` en `GET /api/orders/{id}`.
+- **Estado por línea**: `PENDING → SHIPPED → DELIVERED → RETURN_REQUESTED → RETURNED → REFUNDED`.
+  Solo el vendedor dueño del producto despacha su línea (`403` en otro caso) y solo
+  `LOGISTICS_OPERATOR` confirma la entrega. El pedido pasa a `SHIPPED`/`DELIVERED` cuando **todas**
+  sus líneas alcanzan el estado; el nivel de pedido ya no permite despachar todo.
+- **Devolución**: `POST /api/returns` (comprador dueño, línea `DELIVERED`, cantidad acumulada) →
+  `PATCH /api/returns/{id}/approve` (administrador) → `PATCH /api/returns/{id}/receive` (logística).
+  La recepción repone stock una sola vez y genera el reembolso en la misma transacción.
+- **Reembolso parcial**: `amount = cantidad devuelta × unitPrice histórico`, `UNIQUE(return_id)`.
+  `GET /api/refunds/{id}` y `GET /api/refunds?orderId=` lo hacen verificable; no hay pasarela de pago.
+- **Inventario**: `RESELLABLE` suma a `quantity`; `DAMAGED` suma a `damagedQuantity`; se registra un
+  `InventoryMovement` tipo `RETURN`. Repetir la recepción devuelve el mismo reembolso sin reponer dos veces.
 
 ## Login y contraseñas (2026-11-10)
 

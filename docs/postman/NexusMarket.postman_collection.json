@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "NexusMarket",
-    "description": "Coleccion generada a partir de los 7 controladores REST reales (19 endpoints). Incluye login JWT y pedidos con items. Ejecute primero Authentication > POST /api/auth/login: el script de prueba guarda la variable {{jwt}}. La aplicacion no emite refresh tokens.",
+    "description": "Coleccion generada a partir de los 8 controladores REST reales (27 endpoints): autenticacion JWT, pedidos con items, envio y entrega por item, devoluciones y reembolsos parciales. Ejecute primero Authentication > POST /api/auth/login: el script de prueba guarda la variable {{jwt}}. La aplicacion no emite refresh tokens.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -23,6 +23,14 @@
     },
     {
       "key": "itemId",
+      "value": "1"
+    },
+    {
+      "key": "returnId",
+      "value": "1"
+    },
+    {
+      "key": "refundId",
       "value": "1"
     }
   ],
@@ -98,7 +106,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"type\": \"PHYSICAL\",\n  \"status\": \"PUBLISHED\",\n  \"variants\": [\"Talla M\", \"Talla L\"]\n}",
+              "raw": "{\n  \"type\": \"PHYSICAL\",\n  \"status\": \"PUBLISHED\",\n  \"variants\": [\n    \"Talla M\",\n    \"Talla L\"\n  ],\n  \"price\": 25000.0\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -433,7 +441,7 @@
                 "status"
               ]
             },
-            "description": "200 estado actualizado | 400 cuerpo invalido | 403 actor ajeno al pedido (RG-03) | 404 pedido inexistente | 409 transicion no permitida (RN-16)"
+            "description": "200 estado actualizado | 400 cuerpo invalido | 403 solo BUYER para PENDING_PAYMENT/PAID (el envio y la entrega se hacen por item) | 404 pedido inexistente | 409 transicion no permitida (RN-16)"
           }
         },
         {
@@ -457,7 +465,7 @@
                 "1"
               ]
             },
-            "description": "200 pedido | 400 cabeceras invalidas | 403 rol sin permiso | 404 pedido inexistente"
+            "description": "200 pedido con items (sellerId, estado por item, precio historico y total) | 403 el comprador no es el propietario | 404 pedido inexistente"
           }
         },
         {
@@ -562,6 +570,60 @@
             },
             "description": "200 pedido sin el item | 403 no es el comprador propietario | 404 pedido o item inexistente | 409 el pedido no esta en CART"
           }
+        },
+        {
+          "name": "PATCH /api/orders/{orderId}/items/{itemId}/ship - el vendedor despacha su item",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/orders/{{orderId}}/items/{{itemId}}/ship",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders",
+                "{{orderId}}",
+                "items",
+                "{{itemId}}",
+                "ship"
+              ]
+            },
+            "description": "200 item SHIPPED | 403 no es el vendedor dueno del producto | 404 pedido/item/producto inexistente | 409 pedido no pagado o item no PENDING"
+          }
+        },
+        {
+          "name": "PATCH /api/orders/{orderId}/items/{itemId}/deliver - confirmar entrega del item",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/orders/{{orderId}}/items/{{itemId}}/deliver",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders",
+                "{{orderId}}",
+                "items",
+                "{{itemId}}",
+                "deliver"
+              ]
+            },
+            "description": "200 item DELIVERED | 403 solo LOGISTICS_OPERATOR | 404 pedido/item inexistente | 409 el item no esta SHIPPED"
+          }
         }
       ]
     },
@@ -569,7 +631,77 @@
       "name": "Refund",
       "item": [
         {
-          "name": "POST /api/refunds - solicitar reembolso",
+          "name": "GET /api/refunds/{refundId} - consultar reembolso",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/refunds/{{refundId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "refunds",
+                "{{refundId}}"
+              ]
+            },
+            "description": "200 reembolso (returnId, orderItemId, amount historico, status) | 403 no es el comprador dueno ni ADMINISTRATOR | 404 reembolso inexistente"
+          }
+        },
+        {
+          "name": "GET /api/refunds?orderId= - reembolsos del pedido",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/refunds?orderId={{orderId}}&page=0&size=20&sort=id,asc",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "refunds"
+              ],
+              "query": [
+                {
+                  "key": "orderId",
+                  "value": "{{orderId}}"
+                },
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "20"
+                },
+                {
+                  "key": "sort",
+                  "value": "id,asc"
+                }
+              ]
+            },
+            "description": "200 pagina de reembolsos del pedido | 403 no es el comprador dueno ni ADMINISTRATOR | 404 pedido inexistente"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Return",
+      "item": [
+        {
+          "name": "POST /api/returns - solicitar devolucion de un item",
           "request": {
             "method": "POST",
             "header": [
@@ -582,26 +714,141 @@
                 "value": "Bearer {{jwt}}"
               }
             ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"orderId\": 1\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
             "url": {
-              "raw": "{{baseUrl}}/api/refunds",
+              "raw": "{{baseUrl}}/api/returns",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "api",
-                "refunds"
+                "returns"
               ]
             },
-            "description": "200 reembolso registrado | 400 cuerpo invalido | 403 actor ajeno al pedido (RG-03) | 404 pedido o comprador inexistentes"
+            "description": "200 devolucion REQUESTED | 400 cuerpo/cantidad invalidos | 403 no es el comprador dueno | 404 pedido/item inexistente | 409 el item no esta DELIVERED",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"orderId\": 1,\n  \"orderItemId\": 1,\n  \"quantity\": 1,\n  \"reason\": \"Producto defectuoso\",\n  \"condition\": \"RESELLABLE\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "GET /api/returns/{returnId} - consultar devolucion",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/returns/{{returnId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "returns",
+                "{{returnId}}"
+              ]
+            },
+            "description": "200 devolucion (item, cantidad, condicion, estado y refundId) | 403 no es el comprador dueno ni ADMINISTRATOR | 404 devolucion inexistente"
+          }
+        },
+        {
+          "name": "GET /api/returns?orderId= - devoluciones del pedido",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/returns?orderId={{orderId}}&page=0&size=20&sort=id,asc",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "returns"
+              ],
+              "query": [
+                {
+                  "key": "orderId",
+                  "value": "{{orderId}}"
+                },
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "20"
+                },
+                {
+                  "key": "sort",
+                  "value": "id,asc"
+                }
+              ]
+            },
+            "description": "200 pagina de devoluciones | 403 no es el comprador dueno ni ADMINISTRATOR | 404 pedido inexistente"
+          }
+        },
+        {
+          "name": "PATCH /api/returns/{returnId}/approve - aprobar devolucion",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/returns/{{returnId}}/approve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "returns",
+                "{{returnId}}",
+                "approve"
+              ]
+            },
+            "description": "200 devolucion APPROVED | 403 solo ADMINISTRATOR | 404 devolucion inexistente | 409 la devolucion no esta REQUESTED"
+          }
+        },
+        {
+          "name": "PATCH /api/returns/{returnId}/receive - recibir y generar reembolso",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/returns/{{returnId}}/receive",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "returns",
+                "{{returnId}}",
+                "receive"
+              ]
+            },
+            "description": "200 devolucion RECEIVED y reembolso generado (devuelve refundId) | 403 solo LOGISTICS_OPERATOR | 404 devolucion inexistente | 409 no esta APPROVED. Repetirlo devuelve el mismo reembolso y no repone stock dos veces."
           }
         }
       ]

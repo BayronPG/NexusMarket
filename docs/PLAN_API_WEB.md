@@ -271,20 +271,21 @@ docs/ · README.md                          ← documentación de la evidencia
 | 1.5 | Estrategia de esquema: **Flyway** + `ddl-auto=validate` | ✅ Implementado |
 | 1.6 | Sustitución de los adaptadores en memoria por los JPA | ✅ Implementado |
 | 1.7 | Pruebas de integración de persistencia contra MySQL real | ✅ Implementado (10/10 en MySQL 8.0) |
-| 2.1 | Controladores REST sobre los 6 puertos de entrada (15 endpoints) | ✅ Implementado |
+| 2.1 | Controladores REST sobre los 8 puertos de entrada (27 endpoints) | ✅ Implementado |
 | 2.2 | DTO de entrada/salida + mappers web | ✅ Implementado |
 | 2.3 | Validación de entrada (`@Valid`, respuestas 400) | ✅ Implementado |
 | 2.4 | Manejo global de errores | ✅ Implementado |
 | 2.5 | `ActorContext` desde el JWT (sustituye las cabeceras temporales) | ✅ Implementado (Unidad 4) |
 | 2.6 | OpenAPI / Swagger UI con esquema `bearerAuth` | ✅ Implementado |
 | 2.7 | Colección Postman con `Authorization: Bearer` | ✅ Implementado |
-| 2.8 | Pruebas de integración end-to-end | ✅ Implementado (3 flujos) |
+| 2.8 | Pruebas de integración end-to-end | ✅ Implementado (flujos de API y de sustentación) |
 | 2.10 | Pedidos con ítems: carrito, precio histórico, total e inventario | ✅ Implementado (2026-11-10) |
 | 2.11 | Login con contraseña BCrypt y emisión JWT | ✅ Implementado (2026-11-10) |
+| 2.12 | Envío, devolución y reembolso por ítem (V5) | ✅ Implementado (2026-11-10) |
 | 3 | Cierre de la evidencia (documentación y trazabilidad) | 🔄 En curso |
 | 4 | Seguridad JWT `stateless` (Unidad 4, ver §14) | ✅ Implementado |
 
-**Pruebas:** `mvn -B verify` → **269/269 verdes** (incluye `jacoco:check`); integración contra MySQL
+**Pruebas:** `mvn -B verify` → **278/278 verdes** (incluye `jacoco:check`); integración contra MySQL
 8.0 → **10/10** (excluida del build por defecto mediante la etiqueta `mysql`).
 
 **Publicado:** `origin/main` en `46eaef3` (2026-10-15).
@@ -372,3 +373,51 @@ docs/ · README.md                          ← documentación de la evidencia
   sigue protegido. Sin sesión, CSRF, formLogin ni HTTP Basic.
 - **Limitaciones**: sin registro público, refresh, logout, recuperación, verificación por correo,
   MFA ni OAuth social.
+
+---
+
+## 17. Envío, devolución y reembolso por ítem (2026-11-10)
+
+> Incremento autorizado por el estudiante para la sustentación. No hay pasarela de pago, no se
+> inició frontend y V1–V4 no se modifican.
+
+- **Dominio**:
+  - `OrderItemStatus`: `PENDING → SHIPPED → DELIVERED → RETURN_REQUESTED → RETURNED → REFUNDED`.
+  - `OrderItem` aplica las transiciones; `sellerId` se deriva de `Product` y no se persiste.
+  - `Order.refreshFulfillmentStatus()` deriva `SHIPPED`/`DELIVERED` cuando **todas** las líneas
+    alcanzan el estado; el pedido no avanza después de `DELIVERED` (RN-13).
+  - `Return`: `id`, `orderId`, `orderItemId`, `buyerId`, `quantity`, `reason`, `condition`
+    (`RESELLABLE|DAMAGED`), `status` (`REQUESTED|APPROVED|RECEIVED|REJECTED`), `createdAt`,
+    `receivedAt`.
+  - `Refund`: `id`, `returnId`, `orderId`, `orderItemId`, `amount`, `status` (`REGISTERED`),
+    `createdAt`. Sin pasarela: `REGISTERED` registra la obligación, no una transferencia.
+- **Migración `V5__returns_refunds_and_item_fulfillment.sql`**: `order_items.fulfillment_status`,
+  tablas `returns` e `inventory_movements`, columnas de `refunds` con `UNIQUE(return_id)` y FK.
+  `idx_refunds_order_id` ya existía en V2 y no se repite.
+- **API (27 endpoints)**: añade
+  `PATCH /api/orders/{orderId}/items/{itemId}/ship`,
+  `PATCH /api/orders/{orderId}/items/{itemId}/deliver`,
+  `POST /api/returns`, `GET /api/returns`, `GET /api/returns/{id}`,
+  `PATCH /api/returns/{id}/approve`, `PATCH /api/returns/{id}/receive`,
+  `GET /api/refunds/{id}` y `GET /api/refunds?orderId=`. El `POST /api/refunds` anterior se retiró:
+  el reembolso se genera al recibir la devolución.
+- **Reglas**:
+  - Solo el `SELLER` dueño del `Product` despacha su línea (403 en otro caso);
+    `LOGISTICS_OPERATOR` confirma la entrega; el `BUYER` solo mueve
+    `CART → PENDING_PAYMENT → PAID`.
+  - Un pedido debe estar `PAID` para despachar; una línea debe estar `DELIVERED` para devolverse.
+  - La cantidad devuelta es positiva y no supera la comprada menos devoluciones previas.
+  - `RESELLABLE` repone `quantity`; `DAMAGED` aumenta `damagedQuantity`; siempre se registra un
+    `InventoryMovement` tipo `RETURN`.
+  - `amount = cantidad devuelta × OrderItem.unitPrice` (precio histórico).
+  - Recepción idempotente: repetirla devuelve el mismo reembolso y no repone stock dos veces.
+- **Bodega de reposición**: la bodega del vendedor que ya tiene inventario del producto; si no
+  existe, el primer registro de inventario del producto. Decisión mínima documentada.
+- **Autorización de lectura**: devoluciones y reembolsos solo para el comprador propietario o un
+  `ADMINISTRATOR`. `GET /api/orders/{id}` ahora también exige que el comprador sea el propietario.
+- **Pruebas**: `SustentationFlowE2ETest` (flujo completo, reglas negativas, dañado e idempotencia),
+  `OrderServiceTest` (despacho por vendedor), `RefundServiceTest` y pruebas de controlador/adaptador.
+  `mvn -B verify`: **278/278**, JaCoCo **87.7 % líneas / 67.1 % ramas**.
+- **Limitaciones**: sin pasarela de pago; `REJECTED` existe en el dominio pero no tiene endpoint
+  (API mínima); no hay transportadora ni seguimiento; el envío es un estado por línea, no un
+  recurso `Shipment`.

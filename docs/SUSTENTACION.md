@@ -1,10 +1,10 @@
 # Sustentación de NexusMarket
 
-> Documento preparado el **2026-10-21** para exponer el estado real del proyecto.
-> Actualizado el **2026-10-29** con la Fase 2.4 (manejo global de errores) y los metadatos OpenAPI (2.6).
-> Fuente de verdad: código de `main` (`e7d2c1e`, igual a `origin/main`) y documentos de `docs/`.
-> La secuencia REST fue verificada contra los controladores y DTO reales; **no se ejecutó contra una
-> instancia MySQL en esta sesión**.
+> Documento actualizado el **2026-11-10** con el incremento de envío, devolución y reembolso por
+> ítem (V5). Fuente de verdad: código de `main` y documentos de `docs/`.
+> La secuencia REST fue verificada contra los controladores y DTO reales y contra H2 con
+> `SustentationFlowE2ETest`; **no se ejecutó contra MySQL en esta sesión**. Ensaye el guion una vez
+> antes de la sustentación.
 
 ## 1. Evidencias académicas
 
@@ -12,24 +12,21 @@
 |---|---|---|---|---|---|
 | **E1 - Modelo de dominio del negocio** | 10 % | Participantes, conceptos, relaciones, reglas y validaciones | `docs/modelo-de-dominio.md`, `src/main/java/com/nexusmarket/domain/` | Modelo documentado + clases de dominio | Entregado |
 | **Parcial individual de modelado** | 20 % | Decisiones de modelado y trazabilidad requisito → componente | `docs/modelo-de-dominio.md`, `docs/trazabilidad.md`, `domain/` | Matriz de trazabilidad OBJ/RN/RG | Realizado |
-| **E2 - Servicios de dominio y/o aplicación** | 10 % | 6 servicios de aplicación, puertos de entrada/salida y pruebas | `docs/servicios-de-dominio.md`, `application/`, `src/test/java/.../application/` | 6 clases de servicio + pruebas con JUnit 5/AssertJ | Implementado |
-| **Incremento de persistencia + API Web (Evidencia 5)** | 20 % | JPA/Hibernate, Flyway, MySQL, 6 controladores y 15 endpoints | `infrastructure/persistence/jpa/`, `infrastructure/web/`, `db/migration/`, `docs/PLAN_API_WEB.md` | `mvn -B test`: 187 pruebas, 0 fallos | **Completas**: fases 2.1-2.8 |
-| **Seguridad real (Unidad 4)** | — | Spring Security y autenticación real | — | — | Fuera de este alcance |
-
-El incremento de persistencia y API se publicó en `origin/main` en `46eaef3`; la sincronización
-documental quedó en `e7d2c1e`.
+| **E2 - Servicios de dominio y/o aplicación** | 10 % | Servicios de aplicación, puertos de entrada/salida y pruebas | `docs/servicios-de-dominio.md`, `application/`, `src/test/java/.../application/` | Servicios + pruebas con JUnit 5/AssertJ | Implementado |
+| **Incremento de persistencia + API Web (Evidencia 5)** | 20 % | JPA/Hibernate, Flyway, MySQL, 8 controladores y 27 endpoints | `infrastructure/persistence/jpa/`, `infrastructure/web/`, `db/migration/`, `docs/PLAN_API_WEB.md` | `mvn -B verify`: **278 pruebas, 0 fallos** | **Completas**: fases 2.1-2.12 |
+| **Seguridad real (Unidad 4)** | — | Spring Security y autenticación real | `infrastructure/security/`, `AuthController` | Login JWT + resource server | Implementado |
 
 ## 2. Guion de 8 a 10 minutos
 
 | Tiempo | Qué decir / mostrar | Archivo o comando |
 |---|---|---|
-| 0:00-1:00 | Encuadre: tres entregables y un incremento que los conecta. Aclarar que la Evidencia 5 está en curso. | `README.md` |
-| 1:00-3:00 | Modelo: participantes, conceptos, reglas. Señalar la convención **EXPLICIT / INTERPRETATION / PENDING** y la trazabilidad. | `docs/modelo-de-dominio.md` §3, §4, §6-§9, §12 |
-| 3:00-4:00 | Reglas dentro del dominio, no en los servicios: ciclo del pedido y stock. | `domain/order/Order.java`, `domain/inventory/Inventory.java` |
-| 4:00-5:00 | Arquitectura: `domain` → `application` (puertos) → `infrastructure` (JPA y web). Mostrar que el dominio no depende de Spring. | `application/port/`, `infrastructure/persistence/jpa/adapter/`, `infrastructure/web/controller/` |
-| 5:00-8:00 | Demo REST: vendedor → bodega → producto → stock → reserva → comprador (SQL) → pedido → reembolso. | §5 de este documento |
-| 8:00-9:00 | Pruebas y trazabilidad: resultado real de Maven y matriz requisito → prueba. | §6, `docs/trazabilidad.md` |
-| 9:00-10:00 | Limitaciones declaradas y cierre: qué falta para cerrar la Evidencia 5. | §7 |
+| 0:00-1:00 | Encuadre: tres entregables y un incremento que los conecta. Estado real de la Evidencia 5. | `README.md` |
+| 1:00-3:00 | Modelo: participantes, conceptos, reglas. Convención **EXPLICIT / INTERPRETATION / PENDING**. | `docs/modelo-de-dominio.md` §3, §4, §6-§9, §12 |
+| 3:00-4:00 | Reglas dentro del dominio: ciclo del pedido, stock y estado por línea. | `domain/order/Order.java`, `domain/order/OrderItem.java`, `domain/inventory/Inventory.java` |
+| 4:00-5:00 | Arquitectura: `domain` → `application` (puertos) → `infrastructure` (JPA y web). | `application/port/`, `infrastructure/persistence/jpa/adapter/`, `infrastructure/web/controller/` |
+| 5:00-8:00 | Demo REST del flujo exigido: 3 vendedores, 1 pedido, pago, envío por vendedor, entrega, devolución y reembolso parcial. | §5.3 de este documento |
+| 8:00-9:00 | Pruebas y trazabilidad: resultado real de Maven y flujo E2E de sustentación. | §6, `SustentationFlowE2ETest` |
+| 9:00-10:00 | Limitaciones declaradas y cierre. | §7 |
 
 ## 3. Arquitectura `domain → application → infrastructure`
 
@@ -43,15 +40,14 @@ application/                Casos de uso, ActorContext, puertos de entrada y sal
 infrastructure/             Adaptadores: web (REST) y persistencia (JPA | memory).
 ```
 
-- `domain/`: entidades y reglas (por ejemplo `Order.changeStatus` para RN-13/RN-16 e
-  `Inventory.reserve` para RN-10/RN-11/RN-12).
-- `application/port/in`: contratos que expone la aplicación (`ManageCatalogUseCase`, etc.).
-- `application/port/out`: contratos que la aplicación necesita (`ProductRepository`, etc.).
+- `domain/`: entidades y reglas (por ejemplo `Order.changeStatus`, `OrderItem.ship` e
+  `Inventory.reserve`).
+- `application/port/in`: contratos que expone la aplicación (`ManageOrdersUseCase`, etc.).
+- `application/port/out`: contratos que la aplicación necesita (`ReturnRepository`, etc.).
 - `application/service`: implementación de los casos de uso; autorización y validación de entrada.
-- `infrastructure/persistence/jpa`: entidades JPA, mappers, repositorios Spring Data y adaptadores
-  que implementan los puertos de salida.
+- `infrastructure/persistence/jpa`: entidades JPA, mappers, repositorios Spring Data y adaptadores.
 - `infrastructure/persistence/memory`: adaptadores en memoria para el perfil `memory`.
-- `infrastructure/web`: controladores, DTO, mappers web y resolución temporal de `ActorContext`.
+- `infrastructure/web`: controladores, DTO, mappers web y resolución del `ActorContext`.
 
 **Regla de dependencia:** `infrastructure` → `application` → `domain`. El dominio no importa Spring,
 JPA ni clases web. El esquema lo gobierna Flyway (`spring.jpa.hibernate.ddl-auto=validate`).
@@ -61,7 +57,7 @@ JPA ni clases web. El esquema lo gobierna Flyway (`spring.jpa.hibernate.ddl-auto
 ### 4.1 Pruebas
 
 ```powershell
-mvn -B test
+mvn -B verify
 ```
 
 ### 4.2 Base de datos y arranque
@@ -75,75 +71,57 @@ mysql --user=root --password -e "CREATE DATABASE IF NOT EXISTS nexusmarket;"
 $env:DB_URL = "jdbc:mysql://127.0.0.1:3306/nexusmarket"
 $env:DB_USER = "root"
 $env:DB_PASSWORD = "<tu-contraseña>"
+$env:JWT_SECRET = "<secreto-de-al-menos-32-bytes>"
 
 mvn -B spring-boot:run
 ```
 
-La aplicación queda en `http://localhost:8080`. Para la demo se necesita además el cliente `mysql`
-porque **no existe endpoint para registrar compradores** (§5.6).
+La aplicación queda en `http://localhost:8080`. Para la demo se necesita el cliente `mysql` porque
+**no existe endpoint para registrar compradores** (§5.6).
 
-## 5. Secuencia de demo REST verificada
+## 5. Secuencia de demo REST
 
 ### 5.1 Autenticación obligatoria (JWT)
 
-Todas las peticiones a `/api/**` requieren un token JWT válido en la cabecera `Authorization`; el
-`ActorContext` se construye a partir de sus claims:
+Todas las peticiones a `/api/**` requieren un token JWT válido en `Authorization: Bearer <jwt>`. El
+`ActorContext` se construye desde los claims `sub` (id `Long` positivo), `role`, `iat` y `exp`.
+Sin token, firma inválida, expiración o claims inválidos → **401**; rol no permitido → **403**.
+`POST /api/auth/login` emite el token si el usuario tiene `password_hash`; para usuarios de
+demostración sin contraseña, el guion firma el token localmente con `JWT_SECRET`.
 
-| Cabecera | Valor | Ejemplo |
-|---|---|---|
-| `Authorization` | `Bearer <jwt>` firmado en HS256 con `JWT_SECRET` | `Bearer eyJhbGciOiJIUzI1NiJ9...` |
+### 5.2 Endpoints reales (27)
 
-El token debe incluir `sub` (id `Long` positivo), `role` (valor exacto del enum: `ADMINISTRATOR`,
-`SELLER`, `BUYER`, `LOGISTICS_OPERATOR`, `SUPERVISOR`) e `iat`/`exp`. Sin token, con firma inválida,
-expirado o con claims inválidos la respuesta es **401**. Un rol válido pero no permitido para el caso
-de uso devuelve **403**. Las rutas `/v3/api-docs/**` y `/swagger-ui/**` son públicas.
+| Grupo | Endpoints |
+|---|---|
+| Auth (1) | `POST /api/auth/login` |
+| Seller (2) | `POST /api/sellers`, `GET /api/sellers/{id}` |
+| Warehouse (2) | `POST /api/warehouses`, `GET /api/warehouses?sellerId=` |
+| Catalog (4) | `POST /api/products`, `PATCH /api/products/{id}/status`, `GET /api/products/published`, `GET /api/products/mine` |
+| Inventory (3) | `POST /api/inventories`, `POST /api/inventories/reservations`, `GET /api/inventories?productId=` |
+| Order (8) | `POST /api/orders`, `POST /api/orders/{id}/items`, `PATCH`/`DELETE /api/orders/{id}/items/{itemId}`, `PATCH /api/orders/{id}/status`, `PATCH .../items/{itemId}/ship`, `PATCH .../items/{itemId}/deliver`, `GET /api/orders/{id}` |
+| Return (5) | `POST /api/returns`, `GET /api/returns/{id}`, `GET /api/returns?orderId=`, `PATCH /api/returns/{id}/approve`, `PATCH /api/returns/{id}/receive` |
+| Refund (2) | `GET /api/refunds/{id}`, `GET /api/refunds?orderId=` |
 
-**Login**: `POST /api/auth/login` con `{ "email", "password" }` emite el token (BCrypt strength 12,
-expiración 900 s por defecto). Para usuarios de demostración sin contraseña aprovisionada, el script
-de §5.3 firma el token localmente con el mismo secreto.
+Roles de la demo:
 
-### 5.2 Endpoints reales (15)
+- `POST /api/sellers` y `POST /api/warehouses`: `ADMINISTRATOR`.
+- Productos, stock y `.../ship`: `SELLER` dueño del producto.
+- Pedido, pago, devolución: `BUYER` propietario.
+- `.../deliver`, `.../receive`: `LOGISTICS_OPERATOR`.
+- `.../approve`: `ADMINISTRATOR`.
+- `GET /api/orders/{id}`: comprador propietario, vendedor o logística; los dos últimos ven el pedido
+  completo.
 
-| Método | Ruta | Rol requerido | Cuerpo | Respuesta |
-|---|---|---|---|---|
-| POST | `/api/sellers` | `ADMINISTRATOR` | `fullName`, `email`, `identityDocument` | `id`, `userId` |
-| GET | `/api/sellers/{sellerId}` | `ADMINISTRATOR` | — | `id`, `userId` |
-| POST | `/api/warehouses` | `ADMINISTRATOR` | `type`; `sellerId` condicional | `id`, `type`, `sellerId` |
-| GET | `/api/warehouses?sellerId={id}` | `ADMINISTRATOR` | — | lista de bodegas |
-| POST | `/api/products` | `SELLER` | `type`, `status`, `variants` (opcional) | `id`, `sellerId`, `type`, `variants`, `status` |
-| PATCH | `/api/products/{productId}/status` | `SELLER` | `status` | producto actualizado |
-| GET | `/api/products/published` | cualquier actor autenticado | — | lista de productos publicados |
-| GET | `/api/products/mine` | `SELLER` | — | lista de productos del vendedor |
-| POST | `/api/inventories` | `SELLER`, `LOGISTICS_OPERATOR` | `productId`, `warehouseId`, `quantity` | `id`, `productId`, `warehouseId`, `quantity`, `damagedQuantity` |
-| POST | `/api/inventories/reservations` | `SELLER`, `LOGISTICS_OPERATOR` | `productId`, `warehouseId`, `amount` | inventario actualizado |
-| GET | `/api/inventories?productId={id}` | `SELLER`, `LOGISTICS_OPERATOR` | — | lista de inventarios |
-| POST | `/api/orders` | `BUYER` | — | `id`, `buyerId`, `status` |
-| PATCH | `/api/orders/{orderId}/status` | `BUYER`, `SELLER`, `LOGISTICS_OPERATOR` | `status` | pedido actualizado |
-| GET | `/api/orders/{orderId}` | `BUYER`, `SELLER`, `LOGISTICS_OPERATOR` | — | `id`, `buyerId`, `status` |
-| POST | `/api/refunds` | `BUYER`, `ADMINISTRATOR` | `orderId` | `id`, `orderId` |
+### 5.3 Guion exacto de sustentación (un pedido, tres vendedores)
 
-Valores válidos de los enums usados en la demo:
-
-- `WarehouseType`: `MARKETPLACE`, `SELLER`.
-- `ProductType`: `PHYSICAL`, `DIGITAL`.
-- `ProductStatus`: `PUBLISHED`, `SUSPENDED`, `DISCONTINUED`.
-- `OrderStatus`: `CART`, `PENDING_PAYMENT`, `PAID`, `SHIPPED`, `DELIVERED`.
-
-La transición del pedido es secuencial: `CART` → `PENDING_PAYMENT` → `PAID` → `SHIPPED` → `DELIVERED`.
-No se puede saltar un estado ni modificar un pedido `DELIVERED`.
-
-### 5.3 Script completo
-
-Los identificadores se **capturan de las respuestas**; no se escriben a mano. Ejecutar en una base
-vacía o con un sufijo nuevo (el sufijo evita choques con correos y documentos ya registrados).
+Cada acción va seguida de su GET de comprobación. Los identificadores se capturan de las respuestas;
+no se escriben a mano.
 
 ```powershell
 $base = "http://localhost:8080"
 $suffix = Get-Date -Format "yyyyMMddHHmmss"
-
-# Token HS256 firmado localmente (no hay emisión de tokens en la aplicación).
 $secret = $env:JWT_SECRET
-if (-not $secret -or $secret.Length -lt 32) { throw "Defina JWT_SECRET (>=32 bytes) antes de la demo" }
+if (-not $secret -or $secret.Length -lt 32) { throw "Defina JWT_SECRET (>=32 bytes)" }
 
 function New-Token([string]$sub, [string]$role) {
     function B64Url([string]$text) {
@@ -160,164 +138,232 @@ function New-Token([string]$sub, [string]$role) {
 
 $admin = @{ Authorization = "Bearer $(New-Token '1' 'ADMINISTRATOR')" }
 
-# 1. Registrar vendedor (ADMINISTRATOR). Devuelve id y userId.
-$seller = Invoke-RestMethod -Method Post -Uri "$base/api/sellers" -Headers $admin -ContentType "application/json" -Body (@{
-    fullName = "Vendedor Demo"
-    email = "seller+$suffix@nexus.test"
-    identityDocument = "CC-$suffix"
-} | ConvertTo-Json)
+# ---------------------------------------------------------------------------
+# PASO 1. Tres vendedores, cada uno con su bodega.
+# ---------------------------------------------------------------------------
+$sellers = @()
+1..3 | ForEach-Object {
+    $seller = Invoke-RestMethod -Method Post -Uri "$base/api/sellers" -Headers $admin -ContentType "application/json" -Body (@{
+        fullName = "Vendedor $_ $suffix"; email = "seller$_+$suffix@nexus.test"; identityDocument = "CC-$_-$suffix"
+    } | ConvertTo-Json)
+    $warehouse = Invoke-RestMethod -Method Post -Uri "$base/api/warehouses" -Headers $admin -ContentType "application/json" -Body (@{
+        type = "SELLER"; sellerId = $seller.id
+    } | ConvertTo-Json)
+    $sellers += [pscustomobject]@{
+        id = $seller.id; userId = $seller.userId; warehouseId = $warehouse.id
+        token = (New-Token "$($seller.userId)" 'SELLER')
+    }
+}
+# GET de comprobación: vendedor y bodega
+Invoke-RestMethod -Method Get -Uri "$base/api/sellers/$($sellers[0].id)" -Headers $admin
+Invoke-RestMethod -Method Get -Uri "$base/api/warehouses?sellerId=$($sellers[0].id)" -Headers $admin
 
-$sellerHeaders = @{ Authorization = "Bearer $(New-Token "$($seller.userId)" 'SELLER')" }
+# ---------------------------------------------------------------------------
+# PASO 2. Tres productos (uno por vendedor), precio distinto y stock 10.
+# ---------------------------------------------------------------------------
+$prices = @(10.00, 20.00, 30.00)
+$products = @()
+for ($i = 0; $i -lt 3; $i++) {
+    $sellerHeaders = @{ Authorization = "Bearer $($sellers[$i].token)" }
+    $product = Invoke-RestMethod -Method Post -Uri "$base/api/products" -Headers $sellerHeaders -ContentType "application/json" -Body (@{
+        type = "PHYSICAL"; status = "PUBLISHED"; price = $prices[$i]
+    } | ConvertTo-Json)
+    $stock = Invoke-RestMethod -Method Post -Uri "$base/api/inventories" -Headers $sellerHeaders -ContentType "application/json" -Body (@{
+        productId = $product.id; warehouseId = $sellers[$i].warehouseId; quantity = 10
+    } | ConvertTo-Json)
+    $products += [pscustomobject]@{ id = $product.id; price = $prices[$i]; token = $sellers[$i].token }
+}
+# GET de comprobación: stock inicial 10 por producto
+$products | ForEach-Object {
+    (Invoke-RestMethod -Method Get -Uri "$base/api/inventories?productId=$($_.id)" -Headers @{ Authorization = "Bearer $($_.token)" }).content[0] |
+        Select-Object productId, quantity, damagedQuantity
+}
 
-# 2. Bodega del vendedor y bodega del Marketplace.
-$warehouse = Invoke-RestMethod -Method Post -Uri "$base/api/warehouses" -Headers $admin -ContentType "application/json" -Body (@{
-    type = "SELLER"
-    sellerId = $seller.id
-} | ConvertTo-Json)
-
-$marketplace = Invoke-RestMethod -Method Post -Uri "$base/api/warehouses" -Headers $admin -ContentType "application/json" -Body '{"type":"MARKETPLACE"}'
-
-# 3. Registrar producto publicado.
-$product = Invoke-RestMethod -Method Post -Uri "$base/api/products" -Headers $sellerHeaders -ContentType "application/json" -Body '{"type":"PHYSICAL","status":"PUBLISHED","variants":["Color: negro"],"price":25000.00}'
-
-# 4. Registrar existencias y reservar 3 unidades.
-$stock = Invoke-RestMethod -Method Post -Uri "$base/api/inventories" -Headers $sellerHeaders -ContentType "application/json" -Body (@{
-    productId = $product.id
-    warehouseId = $warehouse.id
-    quantity = 10
-} | ConvertTo-Json)
-
-$reserved = Invoke-RestMethod -Method Post -Uri "$base/api/inventories/reservations" -Headers $sellerHeaders -ContentType "application/json" -Body (@{
-    productId = $product.id
-    warehouseId = $warehouse.id
-    amount = 3
-} | ConvertTo-Json)
-
-Invoke-RestMethod -Method Get -Uri "$base/api/inventories?productId=$($product.id)" -Headers $sellerHeaders
-Invoke-RestMethod -Method Get -Uri "$base/api/products/mine" -Headers $sellerHeaders
-Invoke-RestMethod -Method Get -Uri "$base/api/products/published" -Headers $sellerHeaders
-
-# 5. Cambiar estado del producto.
-Invoke-RestMethod -Method Patch -Uri "$base/api/products/$($product.id)/status" -Headers $sellerHeaders -ContentType "application/json" -Body '{"status":"SUSPENDED"}'
-
-# 6. Comprador: no hay endpoint de registro; se inserta por SQL y se captura su userId.
+# ---------------------------------------------------------------------------
+# PASO 3. Comprador por SQL (no hay endpoint de registro) y su JWT.
+# ---------------------------------------------------------------------------
 $mysqlBase = @("--host=127.0.0.1", "--port=3306", "--user=$env:DB_USER", "--password=$env:DB_PASSWORD")
 $buyerEmail = "buyer+$suffix@nexus.test"
-$sqlBuyer = "INSERT INTO users (full_name,email,identity_document,role,status) VALUES ('Comprador Demo','$buyerEmail','CCB-$suffix','BUYER','ACTIVE'); INSERT INTO buyers (user_id,primary_address,commercial_status) VALUES (LAST_INSERT_ID(),'Calle 1 #2-3','ACTIVE');"
-& mysql @mysqlBase -e $sqlBuyer nexusmarket
+& mysql @mysqlBase nexusmarket -e "INSERT INTO users (full_name,email,identity_document,role,status) VALUES ('Comprador Demo','$buyerEmail','CCB-$suffix','BUYER','ACTIVE'); INSERT INTO buyers (user_id,primary_address,commercial_status) VALUES (LAST_INSERT_ID(),'Calle 1 #2-3','ACTIVE');"
+$buyerUserId = (& mysql @mysqlBase -N -B nexusmarket -e "SELECT id FROM users WHERE email='$buyerEmail';").Trim()
+$buyer = @{ Authorization = "Bearer $(New-Token "$buyerUserId" 'BUYER')" }
+$logistics = @{ Authorization = "Bearer $(New-Token '900' 'LOGISTICS_OPERATOR')" }
 
-$buyerUserId = (& mysql @mysqlBase -N -B -e "SELECT id FROM users WHERE email='$buyerEmail';" nexusmarket).Trim()
-$buyerHeaders = @{ Authorization = "Bearer $(New-Token "$buyerUserId" 'BUYER')" }
+# ---------------------------------------------------------------------------
+# PASO 4. Un solo pedido con tres items.
+# ---------------------------------------------------------------------------
+$order = Invoke-RestMethod -Method Post -Uri "$base/api/orders" -Headers $buyer
+foreach ($product in $products) {
+    $order = Invoke-RestMethod -Method Post -Uri "$base/api/orders/$($order.id)/items" -Headers $buyer -ContentType "application/json" -Body (@{
+        productId = $product.id; quantity = 1
+    } | ConvertTo-Json)
+}
+# GET 1: tres items, tres vendedores distintos, total 60.00
+$detail = Invoke-RestMethod -Method Get -Uri "$base/api/orders/$($order.id)" -Headers $buyer
+$detail | Select-Object id, status, total
+$detail.items | Select-Object id, productId, sellerId, quantity, unitPrice, status
 
-# 7. Crear pedido, agregar items y avanzar el ciclo hasta PAID.
-$order = Invoke-RestMethod -Method Post -Uri "$base/api/orders" -Headers $buyerHeaders
-$order = Invoke-RestMethod -Method Post -Uri "$base/api/orders/$($order.id)/items" -Headers $buyerHeaders -ContentType "application/json" -Body (@{ productId = $product.id; quantity = 2 } | ConvertTo-Json)
-$order = Invoke-RestMethod -Method Patch -Uri "$base/api/orders/$($order.id)/status" -Headers $buyerHeaders -ContentType "application/json" -Body '{"status":"PENDING_PAYMENT"}'
-$order = Invoke-RestMethod -Method Patch -Uri "$base/api/orders/$($order.id)/status" -Headers $buyerHeaders -ContentType "application/json" -Body '{"status":"PAID"}'
+# GET 2: stock 10/10/10 antes de pagar
+$products | ForEach-Object {
+    (Invoke-RestMethod -Method Get -Uri "$base/api/inventories?productId=$($_.id)" -Headers @{ Authorization = "Bearer $($_.token)" }).content[0] |
+        Select-Object quantity, damagedQuantity
+}
 
-# 8. Reembolso del pedido y consultas finales.
-$refund = Invoke-RestMethod -Method Post -Uri "$base/api/refunds" -Headers $buyerHeaders -ContentType "application/json" -Body (@{ orderId = $order.id } | ConvertTo-Json)
+# ---------------------------------------------------------------------------
+# PASO 5. Pago: CART -> PENDING_PAYMENT -> PAID.
+# ---------------------------------------------------------------------------
+Invoke-RestMethod -Method Patch -Uri "$base/api/orders/$($order.id)/status" -Headers $buyer -ContentType "application/json" -Body '{"status":"PENDING_PAYMENT"}'
+Invoke-RestMethod -Method Patch -Uri "$base/api/orders/$($order.id)/status" -Headers $buyer -ContentType "application/json" -Body '{"status":"PAID"}'
 
-Invoke-RestMethod -Method Get -Uri "$base/api/orders/$($order.id)" -Headers $buyerHeaders
-Invoke-RestMethod -Method Get -Uri "$base/api/sellers/$($seller.id)" -Headers $admin
-Invoke-RestMethod -Method Get -Uri "$base/api/warehouses?sellerId=$($seller.id)" -Headers $admin
+# GET 3: pedido PAID y stock 9/9/9
+(Invoke-RestMethod -Method Get -Uri "$base/api/orders/$($order.id)" -Headers $buyer).status
+$products | ForEach-Object {
+    (Invoke-RestMethod -Method Get -Uri "$base/api/inventories?productId=$($_.id)" -Headers @{ Authorization = "Bearer $($_.token)" }).content[0] |
+        Select-Object quantity
+}
+
+# ---------------------------------------------------------------------------
+# PASO 6. Cada vendedor despacha SOLO su item.
+# ---------------------------------------------------------------------------
+for ($i = 0; $i -lt 3; $i++) {
+    Invoke-RestMethod -Method Patch -Uri "$base/api/orders/$($order.id)/items/$($detail.items[$i].id)/ship" -Headers @{ Authorization = "Bearer $($sellers[$i].token)" }
+}
+# GET 4: pedido SHIPPED y los tres items SHIPPED
+$detail = Invoke-RestMethod -Method Get -Uri "$base/api/orders/$($order.id)" -Headers $buyer
+$detail.status
+$detail.items | Select-Object productId, sellerId, status
+
+# Prueba negativa: el vendedor 1 intenta despachar el item del vendedor 2 -> 403
+try {
+    Invoke-RestMethod -Method Patch -Uri "$base/api/orders/$($order.id)/items/$($detail.items[2].id)/ship" -Headers @{ Authorization = "Bearer $($sellers[0].token)" }
+} catch { "$([int]$_.Exception.Response.StatusCode) (esperado 403)" }
+
+# ---------------------------------------------------------------------------
+# PASO 7. Logistica confirma la entrega de los tres items.
+# ---------------------------------------------------------------------------
+foreach ($item in $detail.items) {
+    Invoke-RestMethod -Method Patch -Uri "$base/api/orders/$($order.id)/items/$($item.id)/deliver" -Headers $logistics
+}
+# GET 5: pedido DELIVERED y los tres items DELIVERED
+$detail = Invoke-RestMethod -Method Get -Uri "$base/api/orders/$($order.id)" -Headers $buyer
+$detail.status
+$detail.items | Select-Object productId, status
+
+# ---------------------------------------------------------------------------
+# PASO 8. Devolucion del SEGUNDO producto (cantidad 1, RESELLABLE).
+# ---------------------------------------------------------------------------
+$return = Invoke-RestMethod -Method Post -Uri "$base/api/returns" -Headers $buyer -ContentType "application/json" -Body (@{
+    orderId = $order.id; orderItemId = $detail.items[1].id; quantity = 1
+    reason = "Producto defectuoso"; condition = "RESELLABLE"
+} | ConvertTo-Json)
+# GET 6: devolucion REQUESTED
+Invoke-RestMethod -Method Get -Uri "$base/api/returns/$($return.id)" -Headers $buyer
+
+# Aprobacion (ADMINISTRATOR) y recepcion (LOGISTICS_OPERATOR)
+Invoke-RestMethod -Method Patch -Uri "$base/api/returns/$($return.id)/approve" -Headers $admin
+# GET 7: devolucion APPROVED
+Invoke-RestMethod -Method Get -Uri "$base/api/returns/$($return.id)" -Headers $buyer
+
+$receipt = Invoke-RestMethod -Method Patch -Uri "$base/api/returns/$($return.id)/receive" -Headers $logistics
+# GET 8: devolucion RECEIVED con refundId
+Invoke-RestMethod -Method Get -Uri "$base/api/returns/$($return.id)" -Headers $buyer
+
+# ---------------------------------------------------------------------------
+# PASO 9. Reembolso parcial y comprobacion final.
+# ---------------------------------------------------------------------------
+# GET 9: reembolso con el precio historico del segundo producto (20.00)
+Invoke-RestMethod -Method Get -Uri "$base/api/refunds/$($receipt.refundId)" -Headers $buyer
+# GET 10: solo un reembolso para el pedido
+Invoke-RestMethod -Method Get -Uri "$base/api/refunds?orderId=$($order.id)" -Headers $buyer
+
+# GET 11: inventario final A=9, B=10, C=9
+$products | ForEach-Object {
+    (Invoke-RestMethod -Method Get -Uri "$base/api/inventories?productId=$($_.id)" -Headers @{ Authorization = "Bearer $($_.token)" }).content[0] |
+        Select-Object productId, quantity, damagedQuantity
+}
 ```
 
 ### 5.4 Qué se espera en cada paso
 
 | Paso | Respuesta esperada |
 |---|---|
-| 1 | `id` y `userId` del vendedor; se usan en `$seller.id` y `$seller.userId`. |
-| 2 | Bodega `SELLER` con `sellerId`; bodega `MARKETPLACE` con `sellerId` nulo. |
-| 3 | Producto con `status = PUBLISHED`, `price` y `sellerId` del vendedor. |
-| 4 | Inventario con `quantity = 10` y, tras reservar, `quantity = 7`. |
-| 5 | Producto con `status = SUSPENDED`; deja de aparecer en `/published`. |
-| 6 | Usuario `BUYER` y fila en `buyers`; `$buyerUserId` es el `sub` del token del comprador. |
-| 7 | Pedido en `CART` con un ítem (`quantity = 2`, `unitPrice` histórico, `total`), luego `PENDING_PAYMENT` y `PAID`; el stock baja en 2. |
-| 8 | Reembolso con `orderId` del pedido y `id` generado. |
+| 1 | Vendedor con `id` y `userId`; bodega `SELLER` con `sellerId`. |
+| 2 | Producto `PUBLISHED` con `price` y `sellerId`; inventario con `quantity = 10`. |
+| 3 | Usuario `BUYER` y fila en `buyers`; `$buyerUserId` es el `sub` del token. |
+| 4 | Pedido `CART` con 3 items, 3 `sellerId` distintos, `total = 60.00`. |
+| 5 | `PAID`; el stock baja a 9 en los tres productos. |
+| 6 | `SHIPPED`; los 3 items `SHIPPED`; un vendedor ajeno recibe 403. |
+| 7 | `DELIVERED`; los 3 items `DELIVERED`. |
+| 8 | Devolución `REQUESTED` → `APPROVED` → `RECEIVED`, con `refundId`. |
+| 9 | Reembolso de 20.00 (precio histórico del segundo item); inventario 9/10/9. |
 
 ### 5.5 Verificación de la secuencia contra el código
 
-| Paso | Controlador | DTO real | Campos comprobados |
-|---|---|---|---|
-| 1 | `SellerController.register` | `CreateSellerRequest` | `fullName`, `email`, `identityDocument` (`@NotBlank`) |
-| 2 | `WarehouseController.register` | `CreateWarehouseRequest` | `type`; `sellerId` obligatorio para `SELLER` y nulo para `MARKETPLACE` |
-| 3 | `CatalogController.register` | `CreateProductRequest` | `type`, `status` (`@NotNull`), `variants` opcional |
-| 4 | `InventoryController.register` / `reserve` | `RegisterStockRequest` / `ReserveStockRequest` | `productId`, `warehouseId`, `quantity` / `amount` |
-| 5 | `CatalogController.changeStatus` | `ChangeProductStatusRequest` | `status` (`@NotNull`) |
-| 6 | — | — | No hay endpoint; inserción SQL directa en `users` y `buyers` |
-| 7 | `OrderController.create` / `changeStatus` | `ChangeOrderStatusRequest` | Sin cuerpo al crear; `status` (`@NotNull`) al cambiar |
-| 8 | `RefundController.request` | `CreateRefundRequest` | `orderId` (`@NotNull`) |
+| Paso | Controlador / servicio | DTO real |
+|---|---|---|
+| 1 | `SellerController.register`, `WarehouseController.register` | `CreateSellerRequest`, `CreateWarehouseRequest` |
+| 2 | `CatalogController.register`, `InventoryController.register` | `CreateProductRequest`, `RegisterStockRequest` |
+| 4 | `OrderController.create` / `addItem` | `AddOrderItemRequest` |
+| 5 | `OrderController.changeStatus` (`OrderService.changeOrderStatus`) | `ChangeOrderStatusRequest` |
+| 6 | `OrderController.shipItem` (`OrderService.shipItem`) | sin cuerpo; `itemId` en la ruta |
+| 7 | `OrderController.deliverItem` | sin cuerpo; `itemId` en la ruta |
+| 8 | `ReturnController.request` / `approve` / `receive` | `CreateReturnRequest` |
+| 9 | `RefundController.find` / `findByOrder` | `RefundResponse` |
+
+### 5.6 Limitaciones conocidas
+
+1. **Sin pasarela de pago**: `PAID` cambia el estado y descuenta inventario; no hay confirmación
+   financiera externa. `RefundStatus.REGISTERED` registra la obligación, no una transferencia.
+2. **Sin registro público de compradores ni administradores**: la demo crea el comprador por SQL y
+   firma su token con `JWT_SECRET`.
+3. **Sin recurso `Shipment`**: el envío es un estado por línea (`SHIPPED`/`DELIVERED`); no hay
+   transportadora, guía ni seguimiento.
+4. **`REJECTED` sin endpoint**: el estado existe en el dominio, pero la API mínima solo expone
+   aprobar y recibir.
+5. **Asociaciones como columnas `Long` (P-1)**: sin claves foráneas JPA; el esquema lo gobierna
+   Flyway. Las claves foráneas existen en las tablas nuevas (V5).
+6. **MySQL local es 5.7.24, no 8.0**: el arranque y las pruebas HTTP funcionaron; Hibernate advierte
+   que 5.7 está fuera de soporte. La suite `mysql` sigue excluida del build por defecto.
+7. **Sin versionado de API, CI ni Testcontainers**: deuda declarada.
+8. **`GET /api/orders/{id}`**: el comprador solo puede leer sus propios pedidos (403 en otro caso);
+   vendedor y logística leen cualquier pedido, porque no existe un listado de pedidos por vendedor.
+
+### 5.7 Preguntas probables y respuestas breves
+
+| Pregunta | Respuesta breve |
+|---|---|
+| ¿Cómo se autentica la API? | `POST /api/auth/login` valida BCrypt y emite un JWT HS256; el resource server lo valida y el `ActorContext` sale de `sub` y `role`. Sin token → 401; rol no permitido → 403. |
+| ¿Un pedido puede tener productos de varios vendedores? | Sí. Cada `OrderItem` referencia un `Product`; el `sellerId` se deriva al leer y se expone en el GET. |
+| ¿Quién despacha? | Solo el `SELLER` dueño del producto de esa línea; el estado global no permite que un vendedor despache todo el pedido. |
+| ¿Quién confirma la entrega? | `LOGISTICS_OPERATOR`, línea por línea. |
+| ¿Cómo se devuelve solo un producto? | La devolución referencia `orderItemId`; el reembolso se calcula con la cantidad devuelta y el `unitPrice` histórico de esa línea. |
+| ¿El reembolso mueve dinero? | No. No hay pasarela; se registra la obligación con estado `REGISTERED`. |
+| ¿Qué pasa con el inventario al devolver? | `RESELLABLE` repone `quantity`; `DAMAGED` aumenta `damagedQuantity`; se registra un `InventoryMovement` tipo `RETURN`. Repetir la recepción no repone dos veces. |
+| ¿Por qué el pago descuenta stock y no lo reserva? | Decisión del incremento: no hay reserva temporal; el descuento y el estado se confirman en una transacción con bloqueo pesimista. |
 
 ## 6. Resultado real de las pruebas
 
-Comando ejecutado:
-
-```powershell
-mvn -B verify
-```
-
-Salida real (2026-11-10, tras la migración a JWT):
-
 ```text
-[INFO] Tests run: 269, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Tests run: 278, Failures: 0, Errors: 0, Skipped: 0
 [INFO] All coverage checks have been met.
 [INFO] BUILD SUCCESS
 ```
 
-- La suite por defecto ejecuta **269 pruebas**, incluye `jacoco:check` (≥ 80 % líneas, ≥ 65 % ramas)
-  y deja la cobertura en **88.5 % líneas y 73.5 % ramas**.
-- `PersistenceMysqlIntegrationTest` contiene **10 pruebas** con `@Tag("mysql")` y queda excluida por
-  defecto (`pom.xml`), porque exige una instancia MySQL real.
-- Para ejecutarla:
+- Cobertura: **87.7 % líneas / 67.1 % ramas** (umbral 80/65).
+- `SustentationFlowE2ETest`: 3 pruebas (flujo completo, reglas negativas, dañado e idempotencia).
+- `PersistenceMysqlIntegrationTest`: 10 pruebas con `@Tag("mysql")`, excluidas por defecto.
 
 ```powershell
 mvn -B test -Dtest=PersistenceMysqlIntegrationTest -DexcludedTestTags=none
 ```
 
-## 7. Limitaciones conocidas
+## 7. Alcance de la verificación de este documento
 
-1. **Login implementado, sin ciclo de vida de sesión.** `POST /api/auth/login` valida BCrypt y emite
-   JWT HS256, pero no hay refresh, logout, recuperación de contraseña ni rotación de secreto. Los
-   usuarios sin `password_hash` no pueden iniciar sesión hasta que se les aprovisione uno.
-2. **El pedido ya tiene líneas, cantidades, precio histórico y total** (`OrderItem`, migración V3).
-   El precio se agregó como atributo del producto (**D-PRICE**) porque la especificación no lo define.
-   No hay pasarela de pagos: `PAID` solo cambia el estado y descuenta inventario.
-3. **No hay endpoint para registrar compradores ni administradores.** La demo crea el comprador por
-   SQL. El administrador se simula con un token de rol `ADMINISTRATOR`, sin fila en `users`.
-4. **Asociaciones como columnas `Long` (P-1).** No hay claves foráneas ni asociaciones JPA; el
-   esquema definitivo lo gobierna Flyway. `users.email` e `users.identity_document` no tienen
-   restricción `UNIQUE` en la base: la unicidad RN-14/RN-15 se valida solo en el servicio.
-5. **MySQL local es 5.7.24, no 8.0.** El arranque y las pruebas HTTP contra MySQL real funcionaron,
-   pero Hibernate advierte que 5.7 ya no es soportado (mínimo 8.0). La suite `mysql` sigue excluida
-   del build por defecto.
-6. **Sin versionado de API, CI ni Testcontainers.** OpenAPI, colección Postman, pruebas E2E y
-   paginación ya están implementados; quedan como deuda el versionado, la CI y los contenedores.
-7. **Conteo histórico en `docs/servicios-de-dominio.md` §9.** Allí figura el corte de la Evidencia 2
-   (67 pruebas al 2026-10-13). El conteo vigente es el de la §6 de este documento.
-
-## 8. Preguntas probables y respuestas breves
-
-| Pregunta | Respuesta breve |
-|---|---|
-| ¿Cómo se autentica la API? | `POST /api/auth/login` valida email/contraseña (BCrypt strength 12) y emite un JWT HS256; el resource server lo valida y el `ActorContext` sale de `sub` y `role`. Sin token o inválido → 401; rol no permitido → 403. |
-| ¿Qué pasa con usuarios sin contraseña? | No pueden iniciar sesión; la migración V4 deja `password_hash` nulo y no se asigna una contraseña compartida. Un proceso administrativo debe aprovisionar el hash. |
-| ¿Por qué el dominio no tiene anotaciones JPA? | Para mantener el dominio independiente del framework. Las entidades JPA y los mappers viven en `infrastructure/persistence/jpa/`. |
-| ¿Por qué `Long` en lugar de `@ManyToOne`? | Decisión P-1: agregados separados y esquema versionado con Flyway. Las asociaciones definitivas son deuda declarada. |
-| ¿Dónde se cumplen las reglas del negocio? | En el dominio cuando dependen de una entidad (`Order.changeStatus`, `Inventory.reserve`) y en los servicios cuando dependen de estado externo (unicidad RN-14/15, existencia de referencias). |
-| ¿Por qué H2 si la base real es MySQL? | H2 se usa **solo** en el perfil `test`. La configuración real es MySQL por variables de entorno; la suite MySQL se ejecuta aparte con `-DexcludedTestTags=none`. |
-| ¿El sistema ya gestiona pedidos completos? | Sí en el alcance académico: carrito con ítems, precio histórico, subtotales y total, y descuento de inventario al pagar. **No** hay pasarela de pagos ni confirmación financiera real. |
-| ¿Por qué un POST devuelve 200 y no 201? | Es un ajuste de semántica HTTP pendiente; no forma parte de las tareas de esta preparación. |
-| ¿Qué falta para cerrar la Evidencia 5? | Nada del alcance 2.1–2.9: todo está implementado y verificado. Quedan como deuda declarada el versionado de API, la CI y la emisión de tokens. |
-| ¿La bodega Marketplace puede crearse sin vendedor? | Sí. `CreateWarehouseRequest` valida condicionalmente: `SELLER` exige `sellerId`; `MARKETPLACE` exige que sea nulo. Hay pruebas para ambos casos. |
-
-## 9. Alcance de la verificación de este documento
-
-- Rutas, métodos, roles, DTO y campos: verificados contra
-  `infrastructure/web/controller/*.java`, `infrastructure/web/dto/*.java` y
-  `application/service/*.java`.
-- Reglas de transición y stock: verificadas contra `domain/order/Order.java` y
-  `domain/inventory/Inventory.java`.
-- Resultado de pruebas: tomado de la ejecución real de `mvn -B test` (2026-10-21).
-- No se ejecutó la aplicación ni la secuencia REST contra MySQL en esta sesión; por eso la demo debe
-  ensayarse una vez antes de la sustentación.
+- Rutas, métodos, roles, DTO y campos: verificados contra `infrastructure/web/controller/*.java`,
+  `infrastructure/web/dto/*.java` y `application/service/*.java`.
+- Reglas de transición, stock y devolución: verificadas contra `domain/order/Order.java`,
+  `domain/order/OrderItem.java`, `domain/inventory/Inventory.java` y
+  `application/service/ReturnService.java`.
+- Flujo completo: ejecutado en H2 con `SustentationFlowE2ETest` (278/278 en verde).
+- **No se ejecutó contra MySQL en esta sesión**; ensaye el guion §5.3 una vez antes de la
+  sustentación y confirme el motor en el log de arranque.

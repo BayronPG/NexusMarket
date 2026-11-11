@@ -12,18 +12,18 @@ Formato: | ID | Fuente | Requisito | Componente | Evidencia | Prueba | Estado |
 | OBJ-04 | Especificación | Controlar información de bodegas | `domain.warehouse.Warehouse`, `application.service.WarehouseService` | `WarehouseService.java` | `WarehouseServiceTest` | Implementado y probado |
 | OBJ-05 | Especificación | Gestionar catálogo de productos | `domain.catalog.Product`, `application.service.CatalogService` | `CatalogService.java` | `CatalogServiceTest` | Implementado y probado |
 | OBJ-06 | Especificación | Administrar inventario distribuido | `domain.inventory.Inventory`, `application.service.InventoryService` | `InventoryService.java` | `InventoryServiceTest` | Implementado y probado |
-| OBJ-07 | Especificación | Gestionar carrito de compras | `domain.order.Cart`, `application.service.OrderService` | `OrderService.java` | `OrderServiceTest` | Parcial (contenido del pedido PENDIENTE) |
+| OBJ-07 | Especificación | Gestionar carrito de compras | `domain.order.Cart`, `domain.order.OrderItem`, `application.service.OrderService` | `OrderService.java` | `OrderServiceTest`, `SustentationFlowE2ETest` | Implementado y probado (ítems, precio histórico y total) |
 | OBJ-08 | Especificación | Controlar ciclo completo de pedidos | `domain.order.Order`, `OrderStatus`, `application.service.OrderService` | `OrderService.java` | `OrderServiceTest` | Implementado y probado |
 | OBJ-09 | Especificación | Administrar facturación de compras | `domain.billing.Invoice` | `domain/billing/Invoice.java` | Pendiente | Pendiente (actor y atributos no definidos) |
-| OBJ-10 | Especificación | Gestionar procesos logísticos | `domain.logistics.Shipment` | `domain/logistics/Shipment.java` | Pendiente | Pendiente (atributos no definidos) |
-| OBJ-11 | Especificación | Administrar devoluciones y reembolsos | `domain.returns.Refund`, `application.service.RefundService` | `RefundService.java` | `RefundServiceTest` | Parcial (reembolsos implementados; devoluciones sin actor) |
+| OBJ-10 | Especificación | Gestionar procesos logísticos | `domain.logistics.Shipment`, `domain.order.OrderItem`, `application.service.OrderService` | `OrderItem.java`, `OrderService.java` | `OrderServiceTest`, `SustentationFlowE2ETest` | Parcial (envío y entrega por ítem; `Shipment` sin recurso) |
+| OBJ-11 | Especificación | Administrar devoluciones y reembolsos | `domain.returns.Return`, `Refund`, `application.service.ReturnService`, `RefundService` | `ReturnService.java`, `RefundService.java` | `SustentationFlowE2ETest`, `RefundServiceTest` | Implementado y probado (devolución por ítem y reembolso parcial) |
 | OBJ-12 | Especificación | Consolidar información administrativa | `domain.reporting.AdministrativeReport` | `domain/reporting/AdministrativeReport.java` | Pendiente | Pendiente (contenido no definido) |
 
 ## Restricciones generales (RG)
 
 | ID | Fuente | Requisito | Componente | Evidencia | Prueba | Estado |
 |---|---|---|---|---|---|---|
-| RG-01 | Especificación | Toda operación por usuario autenticado | `application.context.ActorContext`, `application.support.Authorization`, `infrastructure.web.ActorContextArgumentResolver` | `ActorContext.java`, `Authorization.java` | Pruebas de rol en cada servicio; `ActorContextArgumentResolverTest` | Implementado (contexto de actor provisional por cabeceras; seguridad real posterior) |
+| RG-01 | Especificación | Toda operación por usuario autenticado | `application.context.ActorContext`, `application.support.Authorization`, `infrastructure.web.ActorContextArgumentResolver` | `ActorContext.java`, `Authorization.java` | Pruebas de rol en cada servicio; `ActorContextArgumentResolverTest`, `SecurityConfigTest` | Implementado (JWT con `sub` y `role`; 401 sin token, 403 por rol) |
 | RG-02 | Especificación | Un único rol por usuario | `domain.user.Role`, `User.role`, `ActorContext.role` | `domain/user/*.java` | `SellerRegistrationServiceTest` | Implementado y probado |
 | RG-03 | Especificación | No administrar información fuera del rol | `application.support.Authorization` + servicios | `Authorization.java` | Pruebas de permisos por servicio | Implementado y probado |
 
@@ -58,14 +58,14 @@ Formato: | ID | Fuente | Requisito | Componente | Evidencia | Prueba | Estado |
 | Adaptadores JPA de los puertos de salida (8) | `infrastructure/persistence/jpa/adapter/` | `Jpa*RepositoryAdapterTest` | Implementado y probado |
 | Sustitución memoria ↔ JPA | perfil `memory` vs. por defecto | `JpaAdapterWiringTest`, `MemoryAdapterWiringTest` | Implementado y probado |
 | Esquema con Flyway (v1) | `src/main/resources/db/migration/` | `PersistenceMysqlIntegrationTest` | Implementado; validado en MySQL 8.0 |
-| Controladores REST (6; 15 endpoints) | `infrastructure/web/controller/` | `*ControllerTest` (MockMvc) | Implementado y probado |
+| Controladores REST (8; 27 endpoints) | `infrastructure/web/controller/` | `*ControllerTest` (MockMvc) | Implementado y probado |
 | DTO y mappers web | `infrastructure/web/dto/`, `infrastructure/web/mapper/` | `WebMapperTest` | Implementado y probado |
 | Validación de entrada (`@Valid` → 400) | DTO de entrada | `*ControllerTest` | Implementado y probado |
 | `ActorContext` temporal por cabeceras | `infrastructure/web/ActorContextArgumentResolver.java` | `ActorContextArgumentResolverTest` | Implementado y probado (provisional; no es autenticación) |
 | Manejo global de errores (`@RestControllerAdvice`) | `infrastructure/web/error/` | `GlobalExceptionHandlerTest` | Implementado y probado (400/403/404/409/500) |
-| OpenAPI (2.6): 15 endpoints con @Tag/@Operation/@ApiResponse y cabeceras de actor | `infrastructure/web/controller/`, `OpenApiConfig.java` | `OpenApiDocsTest` | Implementado y probado |
+| OpenAPI (2.6): 27 endpoints con @Tag/@Operation/@ApiResponse y cabeceras de actor | `infrastructure/web/controller/`, `OpenApiConfig.java` | `OpenApiDocsTest` | Implementado y probado |
 | Postman (2.7): colección de 15 requests | `docs/postman/NexusMarket.postman_collection.json` | - | Implementado (JSON validado) |
-| Pruebas E2E (2.8): 3 flujos reales y errores | `infrastructure/web/ApiFlowE2ETest.java` | `ApiFlowE2ETest` | Implementado y probado |
+| Pruebas E2E (2.8): flujos reales y errores | `infrastructure/web/ApiFlowE2ETest.java`, `infrastructure/web/SustentationFlowE2ETest.java` | `ApiFlowE2ETest`, `SustentationFlowE2ETest` | Implementado y probado |
 | Paginación (2.9): page/size/sort, máx. 100 y filtros | `application/query/`, controllers y adaptadores | `PageQueryTest`, `PageResultTest`, `JpaPagingTest`, `PageParamsValidationTest` | Implementado y probado |
 | Índices de los filtros (Flyway V2) | `resources/db/migration/V2__add_indexes.sql` | `JpaPagingTest` (H2 aplica la migración) | Implementado |
 | Cobertura JaCoCo con umbral (≥80 % líneas, ≥65 % ramas) | `pom.xml` | `mvn verify` | 86.0 % líneas / 70.8 % ramas |
