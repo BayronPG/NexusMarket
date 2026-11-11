@@ -10,6 +10,7 @@ import com.nexusmarket.application.port.out.RefundRepository;
 import com.nexusmarket.application.port.out.SellerRepository;
 import com.nexusmarket.application.port.out.UserRepository;
 import com.nexusmarket.application.port.out.WarehouseRepository;
+import com.nexusmarket.application.query.PageQuery;
 import com.nexusmarket.domain.buyer.Buyer;
 import com.nexusmarket.domain.catalog.Product;
 import com.nexusmarket.domain.catalog.ProductStatus;
@@ -18,11 +19,14 @@ import com.nexusmarket.domain.inventory.Inventory;
 import com.nexusmarket.domain.order.Order;
 import com.nexusmarket.domain.order.OrderStatus;
 import com.nexusmarket.domain.returns.Refund;
+import com.nexusmarket.domain.returns.RefundStatus;
 import com.nexusmarket.domain.seller.Seller;
 import com.nexusmarket.domain.user.Role;
 import com.nexusmarket.domain.user.User;
 import com.nexusmarket.domain.user.UserStatus;
 import com.nexusmarket.domain.warehouse.Warehouse;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import com.nexusmarket.domain.warehouse.WarehouseType;
 import java.util.List;
 import org.flywaydb.core.Flyway;
@@ -203,13 +207,14 @@ class PersistenceMysqlIntegrationTest {
 
     @Test
     void refundAdapterRoundTrip() {
-        Refund refund = new Refund();
-        refund.setOrderId(8000L);
+        Refund refund = new Refund(null, null, 8000L, null, BigDecimal.ZERO,
+                RefundStatus.REGISTERED, LocalDateTime.now());
 
         Refund saved = refundRepository.save(refund);
 
         assertThat(saved.getId()).isNotNull();
-        assertThat(refundRepository.findByOrderId(8000L))
+        assertThat(refundRepository.findByOrderId(8000L,
+                new PageQuery(0, 20, "id,asc")).content())
                 .hasSize(1)
                 .allSatisfy(found -> assertThat(found.getOrderId()).isEqualTo(8000L));
     }

@@ -4,9 +4,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.nexusmarket.application.port.out.BuyerRepository;
 import com.nexusmarket.application.port.out.InventoryRepository;
+import com.nexusmarket.application.port.out.InventoryMovementRepository;
 import com.nexusmarket.application.port.out.OrderRepository;
 import com.nexusmarket.application.port.out.ProductRepository;
 import com.nexusmarket.application.port.out.RefundRepository;
+import com.nexusmarket.application.port.out.ReturnRepository;
 import com.nexusmarket.application.port.out.SellerRepository;
 import com.nexusmarket.application.port.out.UserRepository;
 import com.nexusmarket.application.port.out.WarehouseRepository;
@@ -58,6 +60,12 @@ class MemoryAdapterWiringTest {
     @Autowired
     private RefundRepository refundRepository;
 
+    @Autowired
+    private ReturnRepository returnRepository;
+
+    @Autowired
+    private InventoryMovementRepository inventoryMovementRepository;
+
     @Test
     void everyOutputPortResolvesToItsInMemoryAdapter() {
         assertThat(userRepository).isInstanceOf(InMemoryUserRepository.class);
@@ -68,5 +76,10 @@ class MemoryAdapterWiringTest {
         assertThat(inventoryRepository).isInstanceOf(InMemoryInventoryRepository.class);
         assertThat(orderRepository).isInstanceOf(InMemoryOrderRepository.class);
         assertThat(refundRepository).isInstanceOf(InMemoryRefundRepository.class);
+        assertThat(returnRepository).isInstanceOf(
+                com.nexusmarket.infrastructure.persistence.memory.InMemoryReturnRepository.class);
+        assertThat(inventoryMovementRepository).isInstanceOf(
+                com.nexusmarket.infrastructure.persistence.memory
+                        .InMemoryInventoryMovementRepository.class);
     }
 }

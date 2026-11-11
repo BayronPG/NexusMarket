@@ -177,6 +177,39 @@ public class Order {
         this.status = next;
     }
 
+    /**
+     * Derives the global order status from the fulfillment of its lines.
+     *
+     * <p>SHIPPED once every line left the seller; DELIVERED once every line was
+     * delivered (or reached a later state such as returned or refunded). The
+     * order keeps a single status so the existing lifecycle remains valid, but
+     * it never advances through this method after DELIVERED (RN-13).</p>
+     *
+     * @throws IllegalStateException if the derived transition is not allowed
+     */
+    public void refreshFulfillmentStatus() {
+        if (items.isEmpty() || status == OrderStatus.DELIVERED) {
+            return;
+        }
+        boolean allShipped = items.stream()
+                .allMatch(item -> item.getStatus().isAtLeastShipped());
+        if (!allShipped) {
+            return;
+        }
+        boolean allDelivered = items.stream()
+                .allMatch(item -> item.getStatus().isAtLeastDelivered());
+        if (allDelivered) {
+            if (status == OrderStatus.PAID) {
+                changeStatus(OrderStatus.SHIPPED);
+            }
+            if (status == OrderStatus.SHIPPED) {
+                changeStatus(OrderStatus.DELIVERED);
+            }
+        } else if (status == OrderStatus.PAID) {
+            changeStatus(OrderStatus.SHIPPED);
+        }
+    }
+
     private void requireCart() {
         if (status != OrderStatus.CART) {
             throw new IllegalStateException("Items can only be modified while the order is in CART");

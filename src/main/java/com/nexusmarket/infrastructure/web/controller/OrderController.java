@@ -118,6 +118,34 @@ public class OrderController {
                 manageOrdersUseCase.changeOrderStatus(actor, orderId, request.status()));
     }
 
+    @PatchMapping("/{orderId}/items/{itemId}/ship")
+    @Operation(summary = "El vendedor despacha su linea del pedido")
+    @ApiResponses({
+            @ApiResponse(responseCode = "401", description = "Token ausente o invalido"),
+            @ApiResponse(responseCode = "200", description = "Linea despachada"),
+            @ApiResponse(responseCode = "403", description = "Solo el vendedor dueno del producto"),
+            @ApiResponse(responseCode = "404", description = "Pedido, linea o producto inexistente"),
+            @ApiResponse(responseCode = "409", description = "El pedido no esta pagado o la linea no esta PENDING")})
+    public OrderResponse shipItem(@Parameter(hidden = true) ActorContext actor,
+                                  @PathVariable Long orderId,
+                                  @PathVariable Long itemId) {
+        return OrderWebMapper.toResponse(manageOrdersUseCase.shipItem(actor, orderId, itemId));
+    }
+
+    @PatchMapping("/{orderId}/items/{itemId}/deliver")
+    @Operation(summary = "El operador logistico confirma la entrega de una linea")
+    @ApiResponses({
+            @ApiResponse(responseCode = "401", description = "Token ausente o invalido"),
+            @ApiResponse(responseCode = "200", description = "Linea entregada"),
+            @ApiResponse(responseCode = "403", description = "Solo el operador logistico"),
+            @ApiResponse(responseCode = "404", description = "Pedido o linea inexistente"),
+            @ApiResponse(responseCode = "409", description = "La linea no esta SHIPPED")})
+    public OrderResponse deliverItem(@Parameter(hidden = true) ActorContext actor,
+                                     @PathVariable Long orderId,
+                                     @PathVariable Long itemId) {
+        return OrderWebMapper.toResponse(manageOrdersUseCase.deliverItem(actor, orderId, itemId));
+    }
+
     @GetMapping("/{orderId}")
     @Operation(summary = "Consulta un pedido con sus items y total")
     @ApiResponses({

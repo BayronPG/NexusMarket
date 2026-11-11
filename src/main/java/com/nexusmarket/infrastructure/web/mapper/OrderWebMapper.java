@@ -10,7 +10,8 @@ import java.util.List;
  * Explicit mapper between the order web DTOs and the domain types.
  *
  * <p>Fase 2.2 of docs/PLAN_API_WEB.md. The total is calculated by the domain
- * aggregate; the mapper only formats the lines.</p>
+ * aggregate; the mapper only formats the lines, including their fulfillment
+ * state and the derived seller.</p>
  */
 public final class OrderWebMapper {
 
@@ -36,8 +37,10 @@ public final class OrderWebMapper {
         return new OrderItemResponse(
                 item.getId(),
                 item.getProductId(),
+                item.getSellerId(),
                 item.getQuantity(),
                 item.getUnitPrice(),
-                item.subtotal());
+                item.subtotal(),
+                item.getStatus());
     }
 }

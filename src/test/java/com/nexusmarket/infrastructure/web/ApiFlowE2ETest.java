@@ -261,7 +261,7 @@ class ApiFlowE2ETest {
     }
 
     @Test
-    void anInvalidOrderTransitionReturnsConflict() throws Exception {
+    void anOrderLevelShippingTransitionIsRejected() throws Exception {
         long userId = createBuyer("diana");
         long orderId = bodyOf(mockMvc.perform(post("/api/orders")
                         .with(SecurityTestSupport.jwt(String.valueOf(userId), Role.BUYER)))
@@ -271,7 +271,7 @@ class ApiFlowE2ETest {
                         .with(SecurityTestSupport.jwt(String.valueOf(userId), Role.BUYER))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"status\":\"SHIPPED\"}"))
-                .andExpect(status().isConflict());
+                .andExpect(status().isForbidden());
     }
 
     @Test
@@ -280,32 +280,6 @@ class ApiFlowE2ETest {
 
         mockMvc.perform(get("/api/orders/999999")
                         .with(SecurityTestSupport.jwt(String.valueOf(userId), Role.BUYER)))
-                .andExpect(status().isNotFound());
-    }
-
-    @Test
-    void refundIsRequestedForAnExistentOrder() throws Exception {
-        long userId = createBuyer("felipe");
-        long orderId = bodyOf(mockMvc.perform(post("/api/orders")
-                        .with(SecurityTestSupport.jwt(String.valueOf(userId), Role.BUYER)))
-                .andReturn()).get("id").asLong();
-
-        mockMvc.perform(post("/api/refunds")
-                        .with(SecurityTestSupport.jwt(String.valueOf(userId), Role.BUYER))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"orderId\":" + orderId + "}"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.orderId").value(orderId));
-    }
-
-    @Test
-    void refundForAnUnknownOrderReturnsNotFound() throws Exception {
-        long userId = createBuyer("gabriel");
-
-        mockMvc.perform(post("/api/refunds")
-                        .with(SecurityTestSupport.jwt(String.valueOf(userId), Role.BUYER))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"orderId\":999999}"))
                 .andExpect(status().isNotFound());
     }
 

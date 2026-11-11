@@ -11,6 +11,7 @@ import com.nexusmarket.application.port.out.InventoryRepository;
 import com.nexusmarket.application.port.out.OrderItemRepository;
 import com.nexusmarket.application.port.out.OrderRepository;
 import com.nexusmarket.application.port.out.ProductRepository;
+import com.nexusmarket.application.port.out.SellerRepository;
 import com.nexusmarket.application.support.Authorization;
 import com.nexusmarket.application.support.Validation;
 import com.nexusmarket.domain.buyer.Buyer;
@@ -20,13 +21,15 @@ import com.nexusmarket.domain.inventory.Inventory;
 import com.nexusmarket.domain.order.Order;
 import com.nexusmarket.domain.order.OrderItem;
 import com.nexusmarket.domain.order.OrderStatus;
+import com.nexusmarket.domain.seller.Seller;
 import com.nexusmarket.domain.user.Role;
 import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Application service that manages the order lifecycle and its lines.
+ * Application service that manages the order lifecycle, its lines and the
+ * per-line dispatch.
  *
  * <p>EXPLICIT source: the Buyer, the Seller and the Logistics Operator manage
  * orders (responsibilities matrix); an order follows the cycle Carrito,
@@ -36,9 +39,11 @@ import org.springframework.transaction.annotation.Transactional;
  * <p>INTERPRETATION: only the owner edits the cart (RG-03); only published
  * products with a positive price can be added; the quantity never exceeds the
  * available stock. The payment step deducts inventory inside the same
- * transaction and keeps a pessimistic lock on the stock rows.</p>
+ * transaction and keeps a pessimistic lock on the stock rows. Shipping is
+ * per line: the seller that owns the product dispatches its line and the
+ * logistics operator confirms delivery; the global order status is derived.</p>
  *
- * <p>Traceability: OBJ-07, OBJ-08, RN-13, RN-16, RG-03.</p>
+ * <p>Traceability: OBJ-07, OBJ-08, OBJ-10, RN-13, RN-16, RG-03.</p>
  */
 @Service
 public class OrderService implements ManageOrdersUseCase {
@@ -48,17 +53,20 @@ public class OrderService implements ManageOrdersUseCase {
     private final ProductRepository productRepository;
     private final InventoryRepository inventoryRepository;
     private final OrderItemRepository orderItemRepository;
+    private final SellerRepository sellerRepository;
 
     public OrderService(OrderRepository orderRepository,
                         BuyerRepository buyerRepository,
                         ProductRepository productRepository,
                         InventoryRepository inventoryRepository,
-                        OrderItemRepository orderItemRepository) {
+                        OrderItemRepository orderItemRepository,
+                        SellerRepository sellerRepository) {
         this.orderRepository = orderRepository;
         this.buyerRepository = buyerRepository;
         this.productRepository = productRepository;
         this.inventoryRepository = inventoryRepository;
         this.orderItemRepository = orderItemRepository;
+        this.sellerRepository = sellerRepository;
     }
 
     @Override
@@ -104,6 +112,7 @@ public class OrderService implements ManageOrdersUseCase {
         } else {
             orderItemRepository.save(item);
         }
+        enrichSellerIds(order);
         return order;
     }
 
@@ -120,6 +129,7 @@ public class OrderService implements ManageOrdersUseCase {
         requireAvailableStock(item.getProductId(), quantity);
         item.setQuantity(quantity);
         orderItemRepository.save(item);
+        enrichSellerIds(order);
         return order;
     }
 
@@ -134,14 +144,19 @@ public class OrderService implements ManageOrdersUseCase {
             throw new NotFoundException("Order item not found: " + itemId);
         }
         orderItemRepository.deleteById(itemId);
+        enrichSellerIds(order);
         return order;
     }
 
     @Override
     @Transactional
     public Order changeOrderStatus(ActorContext actor, Long orderId, OrderStatus next) {
-        Authorization.requireAnyRole(actor, Role.BUYER, Role.SELLER, Role.LOGISTICS_OPERATOR);
+        Authorization.requireAnyRole(actor, Role.BUYER);
         Validation.requireNotNull(next, "next status");
+        if (next != OrderStatus.PENDING_PAYMENT && next != OrderStatus.PAID) {
+            throw new AuthorizationException(
+                    "Shipping and delivery are managed per line, not with the order status");
+        }
 
         Order order = orderRepository.findByIdForUpdate(orderId)
                 .orElseThrow(() -> new NotFoundException("Order not found: " + orderId));
@@ -163,7 +178,63 @@ public class OrderService implements ManageOrdersUseCase {
         if (next == OrderStatus.PAID) {
             deductInventory(order);
         }
-        return orderRepository.save(order);
+        Order saved = orderRepository.save(order);
+        enrichSellerIds(saved);
+        return saved;
+    }
+
+    @Override
+    @Transactional
+    public Order shipItem(ActorContext actor, Long orderId, Long itemId) {
+        Authorization.requireAnyRole(actor, Role.SELLER);
+        Seller seller = sellerRepository.findByUserId(actor.userId())
+                .orElseThrow(() -> new NotFoundException(
+                        "Seller not found for the authenticated user"));
+
+        Order order = orderRepository.findByIdForUpdate(orderId)
+                .orElseThrow(() -> new NotFoundException("Order not found: " + orderId));
+        loadItems(order);
+        if (order.getStatus() != OrderStatus.PAID) {
+            throw new BusinessRuleException("Only a paid order can be shipped");
+        }
+
+        OrderItem item = order.findItem(itemId)
+                .orElseThrow(() -> new NotFoundException("Order item not found: " + itemId));
+        Product product = productRepository.findById(item.getProductId())
+                .orElseThrow(() -> new NotFoundException(
+                        "Product not found: " + item.getProductId()));
+        if (!seller.getId().equals(product.getSellerId())) {
+            throw new AuthorizationException("A seller can only ship its own products (RG-03)");
+        }
+
+        item.ship();
+        orderItemRepository.save(item);
+        order.refreshFulfillmentStatus();
+        Order saved = orderRepository.save(order);
+        enrichSellerIds(saved);
+        return saved;
+    }
+
+    @Override
+    @Transactional
+    public Order deliverItem(ActorContext actor, Long orderId, Long itemId) {
+        Authorization.requireAnyRole(actor, Role.LOGISTICS_OPERATOR);
+
+        Order order = orderRepository.findByIdForUpdate(orderId)
+                .orElseThrow(() -> new NotFoundException("Order not found: " + orderId));
+        loadItems(order);
+        if (order.getStatus() != OrderStatus.PAID && order.getStatus() != OrderStatus.SHIPPED) {
+            throw new BusinessRuleException("Only a paid or shipped order can be delivered");
+        }
+
+        OrderItem item = order.findItem(itemId)
+                .orElseThrow(() -> new NotFoundException("Order item not found: " + itemId));
+        item.deliver();
+        orderItemRepository.save(item);
+        order.refreshFulfillmentStatus();
+        Order saved = orderRepository.save(order);
+        enrichSellerIds(saved);
+        return saved;
     }
 
     @Override
@@ -172,6 +243,10 @@ public class OrderService implements ManageOrdersUseCase {
         Authorization.requireAnyRole(actor, Role.BUYER, Role.SELLER, Role.LOGISTICS_OPERATOR);
         Order order = requireOrder(orderId);
         loadItems(order);
+        if (actor.role() == Role.BUYER) {
+            requireOwner(actor, order);
+        }
+        enrichSellerIds(order);
         return order;
     }
 
@@ -241,6 +316,17 @@ public class OrderService implements ManageOrdersUseCase {
 
     private void loadItems(Order order) {
         order.setItems(orderItemRepository.findByOrderId(order.getId()));
+    }
+
+    /**
+     * Fills the derived seller of every line so the order response can show
+     * which seller must dispatch each product, without persisting the link.
+     */
+    private void enrichSellerIds(Order order) {
+        for (OrderItem item : order.getItems()) {
+            productRepository.findById(item.getProductId())
+                    .ifPresent(product -> item.setSellerId(product.getSellerId()));
+        }
     }
 
     private void requirePositive(int quantity) {

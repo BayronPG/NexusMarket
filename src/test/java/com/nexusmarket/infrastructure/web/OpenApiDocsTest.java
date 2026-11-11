@@ -32,6 +32,13 @@ class OpenApiDocsTest {
                 .andExpect(jsonPath("$.info.title").value("NexusMarket API"))
                 .andExpect(jsonPath("$.paths['/api/products'].post").exists())
                 .andExpect(jsonPath("$.paths['/api/orders/{orderId}'].get").exists())
+                .andExpect(jsonPath("$.paths['/api/orders/{orderId}/items/{itemId}/ship'].patch")
+                        .exists())
+                .andExpect(jsonPath("$.paths['/api/orders/{orderId}/items/{itemId}/deliver'].patch")
+                        .exists())
+                .andExpect(jsonPath("$.paths['/api/returns'].post").exists())
+                .andExpect(jsonPath("$.paths['/api/returns/{returnId}'].get").exists())
+                .andExpect(jsonPath("$.paths['/api/refunds/{refundId}'].get").exists())
                 .andExpect(jsonPath("$.paths['/api/auth/login'].post").exists())
                 .andExpect(jsonPath("$.paths['/api/warehouses'].get").exists())
                 .andExpect(jsonPath("$.components.securitySchemes.bearerAuth.type").value("http"))
@@ -49,6 +56,16 @@ class OpenApiDocsTest {
                 .andExpect(jsonPath("$.paths['/api/products/published'].get.parameters[?(@.name=='size')]")
                         .exists())
                 .andExpect(jsonPath("$.paths['/api/products/published'].get.parameters[?(@.name=='sort')]")
+                        .exists());
+    }
+
+    @Test
+    void apiDocsExposeTheReturnAndRefundParameters() throws Exception {
+        mockMvc.perform(get("/v3/api-docs"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.paths['/api/returns'].get.parameters[?(@.name=='orderId')]")
+                        .exists())
+                .andExpect(jsonPath("$.paths['/api/refunds'].get.parameters[?(@.name=='orderId')]")
                         .exists());
     }
 

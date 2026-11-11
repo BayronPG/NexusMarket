@@ -1,27 +1,29 @@
 package com.nexusmarket.infrastructure.persistence.jpa.adapter;
 
 import com.nexusmarket.application.port.out.RefundRepository;
+import com.nexusmarket.application.query.PageQuery;
+import com.nexusmarket.application.query.PageResult;
 import com.nexusmarket.domain.returns.Refund;
 import com.nexusmarket.infrastructure.persistence.jpa.entity.RefundJpaEntity;
 import com.nexusmarket.infrastructure.persistence.jpa.mapper.RefundJpaMapper;
 import com.nexusmarket.infrastructure.persistence.jpa.repository.SpringDataRefundRepository;
-import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import org.springframework.context.annotation.Profile;
+import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Repository;
 
 /**
  * JPA adapter for the {@link RefundRepository} output port.
  *
- * <p>Converts the domain with {@link RefundJpaMapper} and delegates to
- * {@link SpringDataRefundRepository}. It implements only the methods declared by
- * the port and contains no business rules.</p>
- *
- * <p>Fase 1.3.9 of docs/PLAN_API_WEB.md.</p>
+ * <p>Traceability: OBJ-11.</p>
  */
 @Repository
 @Profile("!memory")
 public class JpaRefundRepositoryAdapter implements RefundRepository {
+
+    private static final Set<String> ALLOWED_SORT =
+            Set.of("id", "returnId", "orderId", "orderItemId", "amount", "createdAt");
 
     private final SpringDataRefundRepository springDataRefundRepository;
 
@@ -41,9 +43,15 @@ public class JpaRefundRepositoryAdapter implements RefundRepository {
     }
 
     @Override
-    public List<Refund> findByOrderId(Long orderId) {
-        return springDataRefundRepository.findByOrderId(orderId).stream()
-                .map(RefundJpaMapper::toDomain)
-                .toList();
+    public Optional<Refund> findByReturnId(Long returnId) {
+        return springDataRefundRepository.findByReturnId(returnId)
+                .map(RefundJpaMapper::toDomain);
+    }
+
+    @Override
+    public PageResult<Refund> findByOrderId(Long orderId, PageQuery query) {
+        Page<RefundJpaEntity> page = springDataRefundRepository.findByOrderId(orderId,
+                Pageables.of(query, ALLOWED_SORT));
+        return Pageables.result(page, RefundJpaMapper::toDomain);
     }
 }

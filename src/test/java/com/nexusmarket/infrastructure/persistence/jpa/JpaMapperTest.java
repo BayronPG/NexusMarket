@@ -10,6 +10,7 @@ import com.nexusmarket.domain.inventory.Inventory;
 import com.nexusmarket.domain.order.Order;
 import com.nexusmarket.domain.order.OrderStatus;
 import com.nexusmarket.domain.returns.Refund;
+import com.nexusmarket.domain.returns.RefundStatus;
 import com.nexusmarket.domain.seller.Seller;
 import com.nexusmarket.domain.user.Role;
 import com.nexusmarket.domain.user.User;
@@ -24,6 +25,8 @@ import com.nexusmarket.infrastructure.persistence.jpa.mapper.RefundJpaMapper;
 import com.nexusmarket.infrastructure.persistence.jpa.mapper.SellerJpaMapper;
 import com.nexusmarket.infrastructure.persistence.jpa.mapper.UserJpaMapper;
 import com.nexusmarket.infrastructure.persistence.jpa.mapper.WarehouseJpaMapper;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
@@ -161,14 +164,16 @@ class JpaMapperTest {
 
     @Test
     void refundMappingRoundTripPreservesOrderId() {
-        Refund refund = new Refund();
-        refund.setId(9L);
-        refund.setOrderId(8L);
+        LocalDateTime createdAt = LocalDateTime.of(2026, 11, 10, 18, 0);
+        Refund refund = new Refund(9L, 3L, 8L, 5L, new BigDecimal("20.00"),
+                RefundStatus.REGISTERED, createdAt);
 
         Refund roundTripped = RefundJpaMapper.toDomain(RefundJpaMapper.toJpa(refund));
 
         assertThat(roundTripped.getId()).isEqualTo(9L);
         assertThat(roundTripped.getOrderId()).isEqualTo(8L);
+        assertThat(roundTripped.getReturnId()).isEqualTo(3L);
+        assertThat(roundTripped.getAmount()).isEqualByComparingTo("20.00");
     }
 
     @Test

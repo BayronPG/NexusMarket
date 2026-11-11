@@ -4,9 +4,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.nexusmarket.application.port.out.BuyerRepository;
 import com.nexusmarket.application.port.out.InventoryRepository;
+import com.nexusmarket.application.port.out.InventoryMovementRepository;
 import com.nexusmarket.application.port.out.OrderRepository;
 import com.nexusmarket.application.port.out.ProductRepository;
 import com.nexusmarket.application.port.out.RefundRepository;
+import com.nexusmarket.application.port.out.ReturnRepository;
 import com.nexusmarket.application.port.out.SellerRepository;
 import com.nexusmarket.application.port.out.UserRepository;
 import com.nexusmarket.application.port.out.WarehouseRepository;
@@ -57,6 +59,12 @@ class JpaAdapterWiringTest {
     @Autowired
     private RefundRepository refundRepository;
 
+    @Autowired
+    private ReturnRepository returnRepository;
+
+    @Autowired
+    private InventoryMovementRepository inventoryMovementRepository;
+
     @Test
     void everyOutputPortResolvesToItsJpaAdapter() {
         assertThat(userRepository).isInstanceOf(JpaUserRepositoryAdapter.class);
@@ -67,5 +75,10 @@ class JpaAdapterWiringTest {
         assertThat(inventoryRepository).isInstanceOf(JpaInventoryRepositoryAdapter.class);
         assertThat(orderRepository).isInstanceOf(JpaOrderRepositoryAdapter.class);
         assertThat(refundRepository).isInstanceOf(JpaRefundRepositoryAdapter.class);
+        assertThat(returnRepository).isInstanceOf(
+                com.nexusmarket.infrastructure.persistence.jpa.adapter.JpaReturnRepositoryAdapter.class);
+        assertThat(inventoryMovementRepository).isInstanceOf(
+                com.nexusmarket.infrastructure.persistence.jpa.adapter
+                        .JpaInventoryMovementRepositoryAdapter.class);
     }
 }

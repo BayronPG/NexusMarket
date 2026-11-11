@@ -6,7 +6,7 @@ import com.nexusmarket.infrastructure.persistence.jpa.entity.OrderItemJpaEntity;
 /**
  * Explicit mapper between the OrderItem aggregate and its JPA entity.
  *
- * <p>Traceability: OBJ-07, OBJ-08.</p>
+ * <p>Traceability: OBJ-07, OBJ-08, OBJ-10.</p>
  */
 public final class OrderItemJpaMapper {
 
@@ -23,6 +23,7 @@ public final class OrderItemJpaMapper {
         entity.setProductId(item.getProductId());
         entity.setQuantity(item.getQuantity());
         entity.setUnitPrice(item.getUnitPrice());
+        entity.setFulfillmentStatus(item.getStatus());
         return entity;
     }
 
@@ -35,6 +36,7 @@ public final class OrderItemJpaMapper {
                 entity.getOrderId(),
                 entity.getProductId(),
                 entity.getQuantity(),
-                entity.getUnitPrice());
+                entity.getUnitPrice(),
+                entity.getFulfillmentStatus());
     }
 }

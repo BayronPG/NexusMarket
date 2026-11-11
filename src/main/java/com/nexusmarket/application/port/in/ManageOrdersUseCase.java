@@ -77,9 +77,33 @@ public interface ManageOrdersUseCase {
     Order changeOrderStatus(ActorContext actor, Long orderId, OrderStatus next);
 
     /**
+     * Ships one line of a paid order. Only the seller that owns the product of
+     * that line can ship it; the global order status advances when every line
+     * has been shipped.
+     *
+     * @param actor   authenticated SELLER that owns the product
+     * @param orderId order identifier
+     * @param itemId  line identifier
+     * @return the updated order with its lines
+     */
+    Order shipItem(ActorContext actor, Long orderId, Long itemId);
+
+    /**
+     * Confirms the delivery of one shipped line. Only the logistics operator
+     * performs this step; the global order status advances when every line has
+     * been delivered.
+     *
+     * @param actor   authenticated LOGISTICS_OPERATOR
+     * @param orderId order identifier
+     * @param itemId  line identifier
+     * @return the updated order with its lines
+     */
+    Order deliverItem(ActorContext actor, Long orderId, Long itemId);
+
+    /**
      * Finds an order by its identifier, including its lines and total.
      *
-     * @param actor   authenticated actor; BUYER, SELLER or LOGISTICS_OPERATOR
+     * @param actor   authenticated actor; a buyer only sees its own orders
      * @param orderId order identifier
      * @return the order
      */

@@ -15,12 +15,14 @@ import com.nexusmarket.domain.catalog.ProductType;
 import com.nexusmarket.domain.inventory.Inventory;
 import com.nexusmarket.domain.order.Order;
 import com.nexusmarket.domain.order.OrderStatus;
+import com.nexusmarket.domain.seller.Seller;
 import com.nexusmarket.domain.user.Role;
 import com.nexusmarket.infrastructure.persistence.memory.InMemoryBuyerRepository;
 import com.nexusmarket.infrastructure.persistence.memory.InMemoryInventoryRepository;
 import com.nexusmarket.infrastructure.persistence.memory.InMemoryOrderItemRepository;
 import com.nexusmarket.infrastructure.persistence.memory.InMemoryOrderRepository;
 import com.nexusmarket.infrastructure.persistence.memory.InMemoryProductRepository;
+import com.nexusmarket.infrastructure.persistence.memory.InMemorySellerRepository;
 import java.math.BigDecimal;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -37,6 +39,7 @@ class OrderServiceTest {
     private InMemoryProductRepository products;
     private InMemoryInventoryRepository inventories;
     private InMemoryOrderItemRepository items;
+    private InMemorySellerRepository sellers;
     private OrderService service;
 
     private static final long BUYER_USER_ID = 100L;
@@ -55,10 +58,13 @@ class OrderServiceTest {
         products = new InMemoryProductRepository();
         inventories = new InMemoryInventoryRepository();
         items = new InMemoryOrderItemRepository();
-        service = new OrderService(orders, buyers, products, inventories, items);
+        sellers = new InMemorySellerRepository();
+        service = new OrderService(orders, buyers, products, inventories, items, sellers);
 
         buyers.save(buyerOf(BUYER_USER_ID));
         buyers.save(buyerOf(OTHER_BUYER_USER_ID));
+        sellers.save(sellerOf(300L));
+        sellers.save(sellerOf(301L));
     }
 
     @Test
@@ -235,16 +241,18 @@ class OrderServiceTest {
 
     @Test
     void followsTheDefinedLifecycle() {
-        long productId = publishedProduct("10.00");
+        long productId = publishedProductForSeller("10.00", 1L);
         stock(productId, 10);
         Order order = service.createOrder(buyer);
-        service.addItem(buyer, order.getId(), productId, 1);
+        long itemId = service.addItem(buyer, order.getId(), productId, 1)
+                .getItems().get(0).getId();
 
         service.changeOrderStatus(buyer, order.getId(), OrderStatus.PENDING_PAYMENT);
         service.changeOrderStatus(buyer, order.getId(), OrderStatus.PAID);
-        service.changeOrderStatus(logisticsOperator, order.getId(), OrderStatus.SHIPPED);
-        Order delivered = service.changeOrderStatus(logisticsOperator, order.getId(), OrderStatus.DELIVERED);
+        Order shipped = service.shipItem(seller, order.getId(), itemId);
+        assertThat(shipped.getStatus()).isEqualTo(OrderStatus.SHIPPED);
 
+        Order delivered = service.deliverItem(logisticsOperator, order.getId(), itemId);
         assertThat(delivered.getStatus()).isEqualTo(OrderStatus.DELIVERED);
     }
 
@@ -313,24 +321,90 @@ class OrderServiceTest {
         service.addItem(buyer, order.getId(), productId, 1);
 
         assertThatThrownBy(() -> service.changeOrderStatus(buyer, order.getId(), OrderStatus.SHIPPED))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("RN-16");
+                .isInstanceOf(AuthorizationException.class)
+                .hasMessageContaining("per line");
     }
 
     @Test
     void aFinalizedOrderCannotBeModified() {
-        long productId = publishedProduct("10.00");
+        long productId = publishedProductForSeller("10.00", 1L);
         stock(productId, 5);
         Order order = service.createOrder(buyer);
-        service.addItem(buyer, order.getId(), productId, 1);
+        long itemId = service.addItem(buyer, order.getId(), productId, 1)
+                .getItems().get(0).getId();
         service.changeOrderStatus(buyer, order.getId(), OrderStatus.PENDING_PAYMENT);
         service.changeOrderStatus(buyer, order.getId(), OrderStatus.PAID);
-        service.changeOrderStatus(seller, order.getId(), OrderStatus.SHIPPED);
-        service.changeOrderStatus(seller, order.getId(), OrderStatus.DELIVERED);
+        service.shipItem(seller, order.getId(), itemId);
+        service.deliverItem(logisticsOperator, order.getId(), itemId);
 
-        assertThatThrownBy(() -> service.changeOrderStatus(seller, order.getId(), OrderStatus.PAID))
+        assertThatThrownBy(() -> service.changeOrderStatus(buyer, order.getId(), OrderStatus.PAID))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("RN-13");
+    }
+
+    @Test
+    void aSellerShipsOnlyItsOwnLine() {
+        long ownProduct = publishedProductForSeller("10.00", 1L);
+        long otherProduct = publishedProductForSeller("10.00", 2L);
+        stock(ownProduct, 5);
+        stock(otherProduct, 5);
+        Order order = service.createOrder(buyer);
+        long ownItem = service.addItem(buyer, order.getId(), ownProduct, 1)
+                .getItems().get(0).getId();
+        long otherItem = service.addItem(buyer, order.getId(), otherProduct, 1)
+                .getItems().get(1).getId();
+        service.changeOrderStatus(buyer, order.getId(), OrderStatus.PENDING_PAYMENT);
+        service.changeOrderStatus(buyer, order.getId(), OrderStatus.PAID);
+
+        assertThatThrownBy(() -> service.shipItem(seller, order.getId(), otherItem))
+                .isInstanceOf(AuthorizationException.class);
+
+        Order shipped = service.shipItem(seller, order.getId(), ownItem);
+        assertThat(shipped.getStatus()).isEqualTo(OrderStatus.PAID);
+
+        ActorContext otherSeller = new ActorContext(301L, Role.SELLER);
+        Order completed = service.shipItem(otherSeller, order.getId(), otherItem);
+        assertThat(completed.getStatus()).isEqualTo(OrderStatus.SHIPPED);
+    }
+
+    @Test
+    void aLineCannotBeShippedBeforePayment() {
+        long productId = publishedProductForSeller("10.00", 1L);
+        stock(productId, 5);
+        Order order = service.createOrder(buyer);
+        long itemId = service.addItem(buyer, order.getId(), productId, 1)
+                .getItems().get(0).getId();
+        service.changeOrderStatus(buyer, order.getId(), OrderStatus.PENDING_PAYMENT);
+
+        assertThatThrownBy(() -> service.shipItem(seller, order.getId(), itemId))
+                .isInstanceOf(BusinessRuleException.class);
+    }
+
+    @Test
+    void onlyTheLogisticsOperatorDelivers() {
+        long productId = publishedProductForSeller("10.00", 1L);
+        stock(productId, 5);
+        Order order = service.createOrder(buyer);
+        long itemId = service.addItem(buyer, order.getId(), productId, 1)
+                .getItems().get(0).getId();
+        service.changeOrderStatus(buyer, order.getId(), OrderStatus.PENDING_PAYMENT);
+        service.changeOrderStatus(buyer, order.getId(), OrderStatus.PAID);
+        service.shipItem(seller, order.getId(), itemId);
+
+        assertThatThrownBy(() -> service.deliverItem(seller, order.getId(), itemId))
+                .isInstanceOf(AuthorizationException.class);
+
+        Order delivered = service.deliverItem(logisticsOperator, order.getId(), itemId);
+        assertThat(delivered.getStatus()).isEqualTo(OrderStatus.DELIVERED);
+        assertThat(delivered.getItems().get(0).getStatus().name()).isEqualTo("DELIVERED");
+    }
+
+    @Test
+    void aBuyerCannotReadAnotherBuyersOrder() {
+        Order order = service.createOrder(buyer);
+
+        assertThatThrownBy(() -> service.findOrder(otherBuyer, order.getId()))
+                .isInstanceOf(AuthorizationException.class);
     }
 
     @Test
@@ -378,8 +452,20 @@ class OrderServiceTest {
     }
 
     private long publishedProduct(String price) {
-        return products.save(new Product(null, ProductType.PHYSICAL, ProductStatus.PUBLISHED,
-                new BigDecimal(price))).getId();
+        return publishedProductForSeller(price, null);
+    }
+
+    private long publishedProductForSeller(String price, Long sellerId) {
+        Product product = new Product(null, ProductType.PHYSICAL, ProductStatus.PUBLISHED,
+                new BigDecimal(price));
+        product.setSellerId(sellerId);
+        return products.save(product).getId();
+    }
+
+    private static Seller sellerOf(long userId) {
+        Seller seller = new Seller();
+        seller.setUserId(userId);
+        return seller;
     }
 
     private void stock(long productId, int quantity) {

@@ -1,32 +1,36 @@
 package com.nexusmarket.application.port.in;
 
 import com.nexusmarket.application.context.ActorContext;
+import com.nexusmarket.application.query.PageQuery;
+import com.nexusmarket.application.query.PageResult;
 import com.nexusmarket.domain.returns.Refund;
 
 /**
- * Inbound port: management of refunds.
+ * Inbound port: read access to partial refunds.
  *
- * <p>EXPLICIT source: refund management is a responsibility of the Buyer and
- * the Administrator (responsibilities matrix, OBJ-11).</p>
+ * <p>Increment "envío y devolución por ítem" (2026-11-10): refunds are created
+ * automatically when a return is received, so this port only exposes queries.</p>
  *
  * <p>Traceability: OBJ-11, RG-03.</p>
  */
 public interface ManageRefundsUseCase {
 
     /**
-     * Input data to request a refund.
+     * Finds a refund.
      *
-     * @param orderId required order being refunded
+     * @param actor   authenticated buyer owner or administrator
+     * @param refundId refund identifier
+     * @return the refund
      */
-    record RequestRefundCommand(Long orderId) {
-    }
+    Refund findRefund(ActorContext actor, Long refundId);
 
     /**
-     * Registers a refund associated with an order.
+     * Lists the refunds of an order.
      *
-     * @param actor   authenticated actor; BUYER or ADMINISTRATOR
-     * @param command input data
-     * @return the created refund
+     * @param actor   authenticated buyer owner or administrator
+     * @param orderId order identifier
+     * @param query   pagination and sort
+     * @return page of refunds
      */
-    Refund requestRefund(ActorContext actor, RequestRefundCommand command);
+    PageResult<Refund> findRefundsByOrder(ActorContext actor, Long orderId, PageQuery query);
 }

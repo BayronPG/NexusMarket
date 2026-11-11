@@ -3,7 +3,11 @@ package com.nexusmarket.infrastructure.persistence.jpa.adapter;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.nexusmarket.domain.returns.Refund;
+import com.nexusmarket.domain.returns.RefundStatus;
 import com.nexusmarket.infrastructure.persistence.jpa.repository.SpringDataRefundRepository;
+import com.nexusmarket.application.query.PageQuery;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -34,9 +38,8 @@ class JpaRefundRepositoryAdapterTest {
     }
 
     private Refund newRefund(Long orderId) {
-        Refund refund = new Refund();
-        refund.setOrderId(orderId);
-        return refund;
+        return new Refund(null, null, orderId, null, BigDecimal.ZERO,
+                RefundStatus.REGISTERED, LocalDateTime.now());
     }
 
     @Test
@@ -70,7 +73,8 @@ class JpaRefundRepositoryAdapterTest {
         adapter.save(newRefund(500L));
         adapter.save(newRefund(600L));
 
-        List<Refund> result = adapter.findByOrderId(500L);
+        List<Refund> result = adapter.findByOrderId(500L,
+                new PageQuery(0, 20, "id,asc")).content();
 
         assertThat(result).hasSize(2);
         assertThat(result).allSatisfy(
@@ -79,6 +83,7 @@ class JpaRefundRepositoryAdapterTest {
 
     @Test
     void findByOrderIdReturnsEmptyWhenAbsent() {
-        assertThat(adapter.findByOrderId(404L)).isEmpty();
+        assertThat(adapter.findByOrderId(404L, new PageQuery(0, 20, "id,asc")).content())
+                .isEmpty();
     }
 }
