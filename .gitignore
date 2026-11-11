@@ -13,3 +13,19 @@ target/
 # OS
 Thumbs.db
 .DS_Store
+
+# Local environment and secrets (never versioned)
+.env
+.env.*
+!.env.example
+
+# Local credentials and provisioning scripts (never versioned)
+*.local.txt
+scripts/provision-demo.sql
+
+# Logs
+*.log
+
+# Database dumps
+*.dump
+*.sql.dump

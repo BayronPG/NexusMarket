@@ -124,6 +124,8 @@ $env:DB_URL="jdbc:mysql://127.0.0.1:3307/nexusmarket"; $env:DB_USER="..."; $env:
 mvn -B test -Dtest=PersistenceMysqlIntegrationTest -DexcludedTestTags=none
 ```
 
+Como alternativa, copia `.env.example` a un archivo local `.env` (no versionado) con `DB_URL`, `DB_USER`, `DB_PASSWORD`, `JWT_SECRET` y `JWT_EXPIRATION_SECONDS`. El `.env` está excluido por `.gitignore` y **nunca** debe subirse al repositorio.
+
 ## Arquitectura
 
 El proyecto sigue una organización por capas con puertos y adaptadores:
