@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NexusMarket</title>
+  <link rel="stylesheet" href="/assets/styles.css">
+</head>
+<body>
+  <div id="login-view" class="login-layout">
+    <form id="login-form" class="login-card">
+      <p class="eyebrow">NEXUSMARKET</p>
+      <h1>Acceso al sistema</h1>
+      <p class="muted">Gestiona el catálogo, pedidos e inventario desde un solo lugar.</p>
+      <label>Correo electrónico<input name="email" type="email" autocomplete="username" required></label>
+      <label>Contraseña<input name="password" type="password" autocomplete="current-password" required></label>
+      <button class="primary" type="submit">Ingresar</button>
+      <p id="login-error" class="message error" hidden></p>
+    </form>
+  </div>
+
+  <div id="app-view" hidden>
+    <header class="topbar">
+      <div class="brand"><span class="brand-mark">N</span><span>NexusMarket</span></div>
+      <div class="user-area"><span id="user-role" class="role-badge"></span><button id="logout" class="link-button">Cerrar sesión</button></div>
+    </header>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <p class="nav-label">Módulos</p>
+        <button class="nav-item active" data-screen="dashboard">Resumen</button>
+        <button class="nav-item" data-screen="products">Productos</button>
+        <button class="nav-item" data-screen="orders">Pedidos</button>
+        <button class="nav-item" data-screen="inventory">Inventario</button>
+        <button class="nav-item" data-screen="operations">Operaciones</button>
+      </aside>
+      <main id="main-content" class="content"></main>
+    </div>
+  </div>
+  <div id="toast" class="toast" hidden></div>
+  <script src="/assets/app.js"></script>
+</body>
+</html>
